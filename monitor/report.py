@@ -220,12 +220,12 @@ def _celda_aporte(v: float, negrita: bool = False) -> str:
 
 def _txt_variacion(v: dict | None) -> str:
     """Variación de la variable en la semana, en su unidad: millones de USD,
-    pp, pb, % (precios) o % mensualizado (tipo de cambio real). Las series
-    mensuales sin dato nuevo en la semana lo dicen."""
+    pp, pb, % (precios) o % mensualizado (tipo de cambio real). Una serie
+    mensual cuyo promedio no se movió dice que no hubo dato nuevo."""
     if not v:
         return ""
-    nueva, a, d = v["nueva"], v["a"], v["d"]
-    if not nueva or ("mes" in v["unidad"] and a == 0):
+    a, d = v["a"], v["d"]
+    if "mes" in v["unidad"] and a is not None and abs(a) < 0.5:
         return "<span class='muted'>sin dato nuevo</span>"
     if a is None or not np.isfinite(a):
         return "–"
@@ -281,10 +281,6 @@ def tabla_aportes(blocks_cfg: dict, meta: dict, dpts: dict, sub1: dict, sub0: di
             nivel = datos.get("tc_oficial_ref") if vk == "tcr" else v
             var = _txt_variacion(nivel)
             dato0, dato1 = _txt_dato(nivel, previo=True), _txt_dato(nivel)
-            if "sin dato nuevo" in var and np.isfinite(dpts.get(c, np.nan)) and abs(dpts[c]) >= 0.05:
-                # Con el índice promediado, el último dato mensual entra de a
-                # poco durante varias semanas.
-                var = "<span class='muted'>sin dato nuevo (entra de a poco)</span>"
             if vk in VARIACION_DE_VARIACION and v and "prom20" in v:
                 # Reservas y depósitos: lo que mira el índice es su variación
                 # semanal promediada en 20 días hábiles. Se muestra la de la
@@ -673,6 +669,14 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
     if "cer" in p and "tc_oficial_ref" in p:
         p = p.assign(tcr=p["tc_oficial_ref"] / p["cer"].ffill() * 100)
     tabla, datos = tabla_variables(p, semana, perfil["variables"])
+    # Los datos de la tabla son, como el índice, promedios de los últimos
+    # INDICE_SUAVIZADO días hábiles (en el calendario del índice).
+    dias = p["indice_0_100"].dropna().index
+    prom = pd.DataFrame({col: p[col].ffill().reindex(dias).rolling(config.INDICE_SUAVIZADO).mean()
+                         for col, *_ in perfil["variables"] if col in p}, index=dias)
+    _, datos_prom = tabla_variables(prom, semana, perfil["variables"])
+    for col, dp in datos_prom.items():
+        datos[col].update({k: dp[k] for k in ("v", "v_prev", "a", "d", "a4", "d4")})
     for b in blocks_cfg.values():
         for c, spec in b["components"].items():
             vk = _var_comp(perfil, c)
@@ -680,9 +684,8 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
                 x = p[vk][p.index <= semana.viernes].dropna()
                 datos[vk]["habitual"] = (x.tail(config.IPD_ZSCORE_WINDOW).median() if spec["transform"] == "level"
                                          else x.tail(252).mean())
-    # Variación semanal (5 días hábiles) promediada en INDICE_SUAVIZADO días,
-    # en el calendario del índice.
-    dias = p["indice_0_100"].dropna().index
+    # Reservas y depósitos: su variación semanal (5 días hábiles) promediada
+    # en INDICE_SUAVIZADO días, en el calendario del índice.
     for vk in VARIACION_DE_VARIACION:
         if vk in datos and vk in p:
             x = p[vk].ffill().reindex(dias)
@@ -746,7 +749,7 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
 
 <section class="section card partible">
   <h2>Qué explica el índice</h2>
-  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Reservas y depósitos: variación semanal promedio de los últimos {config.INDICE_SUAVIZADO} días hábiles, como la mira el índice. {perfil["nota_variables"]}</p>
+  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos {config.INDICE_SUAVIZADO} días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal). {perfil["nota_variables"]}</p>
   {tabla_html}
 </section>
 

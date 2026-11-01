@@ -186,7 +186,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="card-head">
       <h2>Qué explica el índice</h2>
     </div>
-    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Reservas y depósitos: variación semanal promedio de los últimos <span class="n-prom">20</span> días hábiles, como la mira el índice.</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
+    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
   </section>
   <section class="card" style="margin-bottom:16px">
     <h2>Subíndices</h2>
@@ -569,38 +569,45 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       ph.forEach((x) => { const t = new Date(x.fecha + "-01"); t.setMonth(t.getMonth() + 1); t.setDate(30); if (t.toISOString().slice(0, 10) <= f) v = x.netas_usd_millones; });
       return v;
     };
+    // Como el índice, cada dato es el promedio de los últimos N días hábiles
+    // (calendario del índice): hace una semana y hoy. Reservas y depósitos:
+    // el promedio de su variación semanal (5 días hábiles). La FAE es mensual:
+    // cada mes rige desde 30 días después de su cierre.
+    const N = DATA.config.indice_suavizado || 20;
+    const cal = (DATA.ipd.indice || []).map((x) => x[0]);
+    const promedio = (valor, f, mov) => {
+      let j = cal.length - 1; while (j >= 0 && cal[j] > f) j--;
+      if (j < N + 4) return null;
+      let t = 0;
+      for (let i = j - N + 1; i <= j; i++) {
+        const a = valor(cal[i]), b = mov ? valor(cal[i - 5]) : 0;
+        if (a == null || b == null) return null;
+        t += a - b;
+      }
+      return t / N;
+    };
     const fila = (k) => {
-      let s = DATA.series[k] || DATA.series[ALIAS[k]], data = s && s.data, unit = s ? s.unit : "";
-      let v0, v1;
-      if (k === "compras_ph") { v0 = faeAl(dHace7); v1 = faeAl(h.date); unit = "millones de USD"; }
-      else if (!data) return "<td></td><td></td><td></td>";
+      const s = DATA.series[k] || DATA.series[ALIAS[k]];
+      let unit = s ? s.unit : "", valor;
+      if (k === "compras_ph") { valor = faeAl; unit = "millones de USD"; }
+      else if (!s || !s.data) return "<td></td><td></td><td></td>";
       else {
-        if (k === "futuros_oi") data = media21(data);
-        v0 = asof(data, dHace7); v1 = asof(data, h.date);
+        // La posición abierta entra al índice con su promedio de 21 días.
+        // Los futuros vendidos por el BCRA entran 35 días después del fin de
+        // mes, cuando se publica la planilla de reservas.
+        const corrido = (d, dias) => { const t = new Date(d); t.setDate(t.getDate() + dias); return t.toISOString().slice(0, 10); };
+        const data = k === "futuros_oi" ? media21(s.data) : k === "posicion_bcra" ? s.data.map(([d, v]) => [corrido(d, 35), v]) : s.data;
+        valor = (f) => asof(data, f);
       }
+      const mov = k === "reservas" || k === "depositos_usd";
+      const v0 = promedio(valor, dHace7, mov), v1 = promedio(valor, h.date, mov);
       const u = unit.split(",")[0].replace("millones de USD", "M USD");
-      const dato = (v) => v == null ? "–" : unit.startsWith("$") ? nf(v, 2) : `${nf(v, digitsFor(unit, v))} <span class="muted">${u}</span>`;
-      if (k === "reservas" || k === "depositos_usd") {
-        // Lo que mira el índice: la variación semanal (5 días hábiles)
-        // promediada en 20 días, en el calendario del índice. Hace una semana,
-        // hoy y cuánto cambió.
-        const cal = (DATA.ipd.indice || []).map((x) => x[0]);
-        const vals = cal.map((f) => asof(data, f));
-        const prom = (f) => {
-          let j = cal.length - 1; while (j >= 0 && cal[j] > f) j--;
-          const n = DATA.config.indice_suavizado || 20;
-          if (j < n + 4) return null;
-          let t = 0; for (let i = j - n + 1; i <= j; i++) { if (vals[i] == null || vals[i - 5] == null) return null; t += vals[i] - vals[i - 5]; }
-          return t / n;
-        };
-        const a0 = prom(dHace7), a1 = prom(h.date);
-        const m = (x) => x == null ? "–" : `${sg(x, 0)} <span class="muted">M USD</span>`;
-        return `<td class="num muted">${m(a0)}</td><td class="num">${m(a1)}</td><td class="num">${a0 != null && a1 != null ? sg(a1 - a0, 0) + " M USD" : "–"}</td>`;
-      }
+      const dato = (v) => v == null ? "–" : mov ? `${sg(v, 0)} <span class="muted">M USD</span>`
+        : unit.startsWith("$") ? nf(v, 2) : `${nf(v, digitsFor(unit, v))} <span class="muted">${u}</span>`;
       let varTxt = "–";
       if (v0 != null && v1 != null) {
-        if (v0 === v1 && (k === "compras_ph" || /mes/.test(unit))) varTxt = "<span class='muted'>sin dato nuevo</span>";
-        else varTxt = txtCambio({ unit }, { abs: v1 - v0, pct: (v1 / v0 - 1) * 100 });
+        if ((k === "compras_ph" || /mes/.test(unit)) && Math.abs(v1 - v0) < 0.5) varTxt = "<span class='muted'>sin dato nuevo</span>";
+        else varTxt = mov ? sg(v1 - v0, 0) + " M USD" : txtCambio({ unit }, { abs: v1 - v0, pct: (v1 / v0 - 1) * 100 });
       }
       return `<td class="num muted">${dato(v0)}</td><td class="num">${dato(v1)}</td><td class="num">${varTxt}</td>`;
     };
