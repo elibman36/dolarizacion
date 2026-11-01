@@ -682,16 +682,25 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     if (!phAll.length) {
       emptyState("c-ph", "Sin datos todavía. Se descargan solos del anexo del balance cambiario del BCRA.");
     } else {
-      // Mismo período que el resto del tablero, con un mínimo de 24 meses.
+      // Toda la historia, abierta en el período del tablero (mínimo 24 meses);
+      // se navega con la barra inferior o la rueda del mouse.
       const lastM = phAll[phAll.length - 1].fecha;
       const days = rangeDays ? Math.max(rangeDays, 730) : 0;
-      const fromM = days ? new Date(new Date(lastM + "-01") - days * 864e5).toISOString().slice(0, 7) : "";
-      const ph = phAll.filter((r) => r.fecha >= fromM);
+      const fromM = days ? new Date(new Date(lastM + "-01") - days * 864e5).toISOString().slice(0, 7) : phAll[0].fecha;
+      const ph = phAll;
+      const desde = (ph.find((r) => r.fecha >= fromM) || ph[0]).fecha;
       const c = mount("c-ph");
       const byM = new Map(ph.map((r) => [r.fecha, r]));
       c.setOption({
         animation: false, textStyle: { fontFamily: css("--font"), color: css("--ink-2") },
-        grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
+        grid: { left: 8, right: 16, top: 36, bottom: 34, containLabel: true },
+        dataZoom: [
+          { type: "inside", xAxisIndex: 0, filterMode: "filter", startValue: desde },
+          { type: "slider", xAxisIndex: 0, filterMode: "filter", startValue: desde, height: 14, bottom: 4, showDetail: false,
+            borderColor: css("--border"), fillerColor: css("--wash"), backgroundColor: "transparent",
+            dataBackground: { lineStyle: { color: css("--axis") }, areaStyle: { color: css("--wash") } },
+            handleStyle: { color: css("--surface"), borderColor: css("--axis") }, moveHandleStyle: { color: css("--axis") } },
+        ],
         tooltip: {
           trigger: "axis", confine: true, backgroundColor: css("--surface"), borderColor: css("--border"), textStyle: { color: css("--ink"), fontSize: 12 },
           formatter: (ps) => {
