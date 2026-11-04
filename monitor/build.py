@@ -526,16 +526,9 @@ def run(offline: bool = False) -> dict:
     # semana (contra 7 días antes), con el mismo cálculo que el reporte.
     fecha = ipd["indice"].dropna().index[-1]
     meta = {c["key"]: c for c in payload["ipd"]["components"]}
-    # También contra el día hábil anterior y contra un mes antes, para el
-    # selector de horizonte del tablero.
-    keys = [k for k in meta if f"pts_{k}" in out_panel]
-    dias_ind = ipd["indice"].dropna().index
-    previos = {"1d": dias_ind[-2] if len(dias_ind) > 1 else fecha - pd.Timedelta(days=1),
-               "5d": fecha - pd.Timedelta(days=7), "1m": fecha - pd.DateOffset(months=1)}
-    cambios = {h: indicators.cambio_por_componente(out_panel, fecha, keys, previo=d) for h, d in previos.items()}
+    cambio = indicators.cambio_por_componente(out_panel, fecha, [k for k in meta if f"pts_{k}" in out_panel])
     for c in payload["ipd"]["components"]:
-        c["cambio_semana"] = _clean(cambios["5d"].get(c["key"]))
-        c["cambios"] = {h: _clean(v.get(c["key"])) for h, v in cambios.items()}
+        c["cambio_semana"] = _clean(cambio.get(c["key"]))
     config.OUTPUT_JSON.write_text(json.dumps(payload, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     h = payload["headline"]
     log.info("IPD %s = %s | índice 0-100 = %s (%s)", h["date"], h["ipd"], h["indice"], h["status_label"])
