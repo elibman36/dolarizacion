@@ -252,7 +252,7 @@ def _txt_dato(v: dict | None, previo: bool = False) -> str:
 # Variables que el índice mira por su variación en dinero: en la tabla, sus
 # columnas de dato son su variación semanal promedio de los últimos 20 días
 # hábiles (lo que mira el índice), al cierre de cada semana.
-VARIACION_DE_VARIACION = ("reservas", "depositos_usd")
+VARIACION_DE_VARIACION = ("reservas", "depositos_usd", "tasa", "riesgo_pais")
 
 
 def tabla_aportes(blocks_cfg: dict, meta: dict, dpts: dict, sub1: dict, sub0: dict, i1: float, i0: float,
@@ -282,13 +282,13 @@ def tabla_aportes(blocks_cfg: dict, meta: dict, dpts: dict, sub1: dict, sub0: di
             var = _txt_variacion(nivel)
             dato0, dato1 = _txt_dato(nivel, previo=True), _txt_dato(nivel)
             if vk in VARIACION_DE_VARIACION and v and "prom20" in v:
-                # Reservas y depósitos: lo que mira el índice es su variación
-                # semanal promediada en 20 días hábiles. Se muestra la de la
-                # semana anterior, la de esta y cuánto cambió.
-                u = " " + _unidad_corta(v)
-                dato0 = fmt(v["prom20_prev"], 0, signo=True) + u
-                dato1 = fmt(v["prom20"], 0, signo=True) + u
-                var = fmt(v["prom20"] - v["prom20_prev"], 0, signo=True) + u
+                # Lo que mira el índice de estas variables es su variación
+                # semanal, promediada en 20 días hábiles: la de la semana
+                # anterior, la de esta y cuánto cambió.
+                u, dec = {"pp": (" pp", 2), "pb": (" pb", 0)}.get(v["tipo"], (" " + _unidad_corta(v), 0))
+                dato0 = fmt(v["prom20_prev"], dec, signo=True) + u
+                dato1 = fmt(v["prom20"], dec, signo=True) + u
+                var = fmt(v["prom20"] - v["prom20_prev"], dec, signo=True) + u
             filas.append(f"<tr><td class='comp'>{html.escape(b['components'][c]['label'])}</td>"
                          f"<td class='num muted'>{dato0}</td><td class='num'>{dato1}</td>"
                          f"<td class='num'>{var}</td>{_celda_aporte(dpts[c])}</tr>")
@@ -749,7 +749,7 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
 
 <section class="section card partible">
   <h2>Qué explica el índice</h2>
-  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos {config.INDICE_SUAVIZADO} días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal). {perfil["nota_variables"]}</p>
+  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos {config.INDICE_SUAVIZADO} días hábiles, igual que el índice (en reservas, depósitos, BADLAR y riesgo país, de su variación semanal). {perfil["nota_variables"]}</p>
   {tabla_html}
 </section>
 
@@ -811,7 +811,7 @@ APENDICE_AR = {
                  "Las reservas cayeron: el BCRA pierde poder de fuego para defender el peso.",
                  "Las reservas subieron: el BCRA acumula respaldo."),
     "tasa": ("Variación de la tasa BADLAR de bancos privados en 5 días hábiles (puntos porcentuales).",
-             "Subió la tasa en pesos: hace falta pagar más para que no se pasen al dólar (defensa del peso).",
+             "Subió la tasa en pesos: hace falta pagar más para que no se pasen al dólar.",
              "Bajó la tasa en pesos: no hace falta convalidar tasas altas para sostener el peso."),
     "brecha_mep": ("Brecha entre el dólar MEP y el oficial, comparada con los dos años anteriores.",
                    "Subió la brecha: el mercado paga más por el dólar libre que por el oficial.",

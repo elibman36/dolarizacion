@@ -213,7 +213,7 @@ IPD_BLOCKS = {
                           "frases": ("las reservas cayeron más que lo habitual",
                                      "las reservas evolucionaron mejor que lo habitual")},
             "tasa":      {"transform": "diff",  "sign": +1, "centro_cero": True, "weight": 1.0,
-                          "label": "Tasa BADLAR (defensa del peso)",
+                          "label": "Tasa BADLAR",
                           "frases": ("subió la tasa en pesos", "bajó la tasa en pesos")},
             "brecha_mep":  {"transform": "level", "sign": +1, "weight": 1.0,
                             "label": "Brecha MEP / oficial",
