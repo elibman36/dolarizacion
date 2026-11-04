@@ -644,7 +644,8 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
     if f_cierre is None:
         raise SystemExit("No hay datos del índice para la semana pedida.")
     _, i0 = _hasta(indice, semana.viernes - pd.Timedelta(days=7))
-    _, i4 = _hasta(indice, semana.viernes - pd.Timedelta(days=28))
+    _, i4 = _hasta(indice, semana.viernes - pd.DateOffset(months=1))
+    _, i52 = _hasta(indice, semana.viernes - pd.DateOffset(years=1))
     tramo_key, tramo_label = indicators.status_for(i1)
 
     labels = {c: spec["label"] for b in blocks_cfg.values() for c, spec in b["components"].items()}
@@ -736,7 +737,8 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
     <div class="scale"><span>0 apreciación</span><span>50</span><span>depreciación 100</span></div>
     <div class="kv">
       <span>Semana anterior</span><b>{fmt(i0, 0)} ({fmt(i1 - i0, 0, signo=True)} pts)</b>
-      <span>Hace 4 semanas</span><b>{fmt(i4, 0)} ({fmt(i1 - i4, 0, signo=True)} pts)</b>
+      <span>Hace un mes</span><b>{fmt(i4, 0)} ({fmt(i1 - i4, 0, signo=True)} pts)</b>
+      <span>Hace un año</span><b>{fmt(i52, 0)} ({fmt(i1 - i52, 0, signo=True)} pts)</b>
     </div>
     {f"<div class='subs-t'>Subíndices (0–100). Entre paréntesis, su aporte a la variación del índice en la semana</div><div class='kv subs'>{subs_hero}</div>" if subs_hero else ""}
   </div>

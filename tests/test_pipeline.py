@@ -752,6 +752,16 @@ def test_cambio_semanal_suma_el_cambio_del_indice():
     assert abs(sum(d.values()) - 2.0) < 1e-9
 
 
+def test_cambio_contra_otra_fecha_suma_el_cambio_del_indice():
+    fechas = pd.to_datetime(["2026-09-23", "2026-10-22", "2026-10-23"])
+    p = pd.DataFrame({"indice_0_100": [40.0, 45.0, 46.0], "pts_reservas": [-6.0, -1.0, 0.5],
+                      "pts_canje": [-4.0, -4.0, -4.5]}, index=fechas)
+    dia = indicators.cambio_por_componente(p, fechas[-1], ["reservas", "canje"], previo=fechas[1])
+    mes = indicators.cambio_por_componente(p, fechas[-1], ["reservas", "canje"], previo=fechas[0])
+    assert dia == {"reservas": 1.5, "canje": -0.5}
+    assert abs(sum(mes.values()) - 6.0) < 1e-9
+
+
 def test_flujo_acumulado_suma_con_su_signo_y_se_borra():
     from monitor import indicators
     idx = pd.bdate_range("2022-01-03", periods=930)

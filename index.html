@@ -184,8 +184,11 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   <section class="card" style="margin-bottom:16px">
     <div class="card-head">
       <h2>Qué explica el índice</h2>
+      <div class="seg" id="contrib-h" role="group" aria-label="Comparar contra">
+        <button data-h="1d">Día</button><button data-h="5d" aria-pressed="true">5 días</button><button data-h="1m">Mes</button><button data-h="1a">Año</button>
+      </div>
     </div>
-    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas, depósitos, BADLAR y riesgo país, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
+    <p class="note">El dato de cada variable hoy y en la fecha de comparación (día hábil anterior, una semana, un mes o un año antes), su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. A un año se muestran solo el índice y los subíndices: en ese plazo cambian los pesos y la escala del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas, depósitos, BADLAR y riesgo país, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
   </section>
   <section class="card" style="margin-bottom:16px">
     <h2>Subíndices</h2>
@@ -530,6 +533,13 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   // Aporte de cada subíndice y componente hoy y su cambio en 7 o 30 días, en
   // puntos del índice: los aportes suman la distancia a 50 y los cambios, el
   // cambio del índice.
+  let CONTRIB_H = "5d";
+  document.getElementById("contrib-h").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-h]"); if (!b) return;
+    CONTRIB_H = b.dataset.h;
+    document.querySelectorAll("#contrib-h button").forEach((x) => x.setAttribute("aria-pressed", x === b ? "true" : "false"));
+    renderContrib();
+  });
   function renderContrib() {
     const comps = DATA.ipd.components.filter((x) => x.puntos != null);
     const tbl = document.getElementById("contrib-tbl");
@@ -557,7 +567,19 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     // oficial en pesos y su variación real mensualizada. La posición abierta,
     // con el promedio de 21 días que usa el índice. La FAE es mensual: entra
     // 30 días después del cierre de cada mes.
-    const dHace7 = (() => { const t = new Date(h.date); t.setDate(t.getDate() - 7); return t.toISOString().slice(0, 10); })();
+    const N = DATA.config.indice_suavizado || 20;
+    const cal = (DATA.ipd.indice || []).map((x) => x[0]);
+    const H = CONTRIB_H;
+    const dHace7 = (() => {
+      if (H === "1d") { const j = cal.lastIndexOf(h.date); return j > 0 ? cal[j - 1] : h.date; }
+      const t = new Date(h.date + "T12:00:00Z");
+      if (H === "5d") t.setUTCDate(t.getUTCDate() - 7);
+      else if (H === "1m") t.setUTCMonth(t.getUTCMonth() - 1);
+      else t.setUTCFullYear(t.getUTCFullYear() - 1);
+      return t.toISOString().slice(0, 10);
+    })();
+    const ETQ = { "1d": "Día hábil anterior", "5d": "Hace una semana", "1m": "Hace un mes", "1a": "Hace un año" };
+    const cambioDe = (x) => H === "5d" ? x.cambio_semana : x.cambios ? x.cambios[H] : null;
     const media21 = (data) => data.map((x, i) => {
       const w = data.slice(Math.max(0, i - 20), i + 1).map((y) => y[1]).filter((y) => y != null);
       return [x[0], w.length >= 10 ? w.reduce((t, y) => t + y, 0) / w.length : null];
@@ -572,8 +594,6 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     // (calendario del índice): hace una semana y hoy. Reservas y depósitos:
     // el promedio de su variación semanal (5 días hábiles). La FAE es mensual:
     // cada mes rige desde 30 días después de su cierre.
-    const N = DATA.config.indice_suavizado || 20;
-    const cal = (DATA.ipd.indice || []).map((x) => x[0]);
     const promedio = (valor, f, mov) => {
       let j = cal.length - 1; while (j >= 0 && cal[j] > f) j--;
       if (j < N + 4) return null;
@@ -611,18 +631,20 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       }
       return `<td class="num muted">${dato(v0)}</td><td class="num">${dato(v1)}</td><td class="num">${varTxt}</td>`;
     };
-    tbl.querySelector("thead").innerHTML = `<tr><th>Subíndice y componente</th><th class="num">Hace una semana</th><th class="num">Hoy</th><th class="num">Variación</th><th class="num">Aporte a la variación del índice (pts)</th></tr>`;
+    tbl.querySelector("thead").innerHTML = `<tr><th>Subíndice y componente</th><th class="num">${ETQ[H]}</th><th class="num">Hoy</th><th class="num">Variación</th>${H === "1a" ? "" : '<th class="num">Aporte a la variación del índice (pts)</th>'}</tr>`;
     const filas = [];
     Object.entries(DATA.ipd.blocks).forEach(([bk, b]) => {
       const cs = comps.filter((x) => x.block === bk).sort((x, y) => (y.weight || 0) - (x.weight || 0));
       if (!cs.length) return;
-      const cb = cs.reduce((t, x) => t + (x.cambio_semana || 0), 0);
+      const cb = cs.reduce((t, x) => t + (cambioDe(x) || 0), 0);
       const s0 = asof(b.indice || [], dHace7), s1 = b.indice_last;
-      filas.push(`<tr class="sub"><td>${b.label}</td><td class="num muted">${s0 != null ? nf(s0, 0) + "/100" : ""}</td><td class="num">${s1 != null ? nf(s1, 0) + "/100" : ""}</td><td class="num">${s0 != null && s1 != null ? sg(s1 - s0, 0) + " pts" : ""}</td>${aporte(cb, true)}</tr>`);
-      cs.forEach((x) => filas.push(`<tr title="Dato al ${x.last_date}"><td class="comp">${x.label}</td>${fila(x.key).replace("sin dato nuevo</span>", x.cambio_semana != null && Math.abs(x.cambio_semana) >= 0.05 ? "sin dato nuevo (entra de a poco)</span>" : "sin dato nuevo</span>")}${aporte(x.cambio_semana)}</tr>`));
+      filas.push(`<tr class="sub"><td>${b.label}</td><td class="num muted">${s0 != null ? nf(s0, 0) + "/100" : ""}</td><td class="num">${s1 != null ? nf(s1, 0) + "/100" : ""}</td><td class="num">${s0 != null && s1 != null ? sg(s1 - s0, 0) + " pts" : ""}</td>${H === "1a" ? "" : aporte(cb, true)}</tr>`);
+      if (H === "1a") return;
+      cs.forEach((x) => { const cx = cambioDe(x); filas.push(`<tr title="Dato al ${x.last_date}"><td class="comp">${x.label}</td>${fila(x.key).replace("sin dato nuevo</span>", cx != null && Math.abs(cx) >= 0.05 ? "sin dato nuevo (entra de a poco)</span>" : "sin dato nuevo</span>")}${aporte(cx)}</tr>`); });
     });
-    const di = h.indice_7d == null ? null : h.indice - h.indice_7d;
-    filas.push(`<tr class="tot"><td>Índice</td><td class="num muted">${h.indice_7d == null ? "–" : nf(h.indice_7d, 0) + "/100"}</td><td class="num">${nf(h.indice, 0)}/100</td><td class="num">${di == null ? "" : sg(di, 1) + " pts"}</td>${di == null ? "<td></td>" : aporte(di, true)}</tr>`);
+    const i0 = asof(DATA.ipd.indice || [], dHace7);
+    const di = i0 == null ? null : h.indice - i0;
+    filas.push(`<tr class="tot"><td>Índice</td><td class="num muted">${i0 == null ? "–" : nf(i0, 0) + "/100"}</td><td class="num">${nf(h.indice, 0)}/100</td><td class="num">${di == null ? "" : sg(di, 1) + " pts"}</td>${H === "1a" ? "" : di == null ? "<td></td>" : aporte(di, true)}</tr>`);
     tbl.querySelector("tbody").innerHTML = filas.join("");
   }
 

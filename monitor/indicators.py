@@ -547,9 +547,10 @@ def _ultimo_hasta(s: pd.Series, fecha: pd.Timestamp) -> float:
     return float(s.iloc[-1]) if not s.empty else np.nan
 
 
-def cambio_por_componente(p: pd.DataFrame, fecha: pd.Timestamp, comps: list[str]) -> dict[str, float]:
+def cambio_por_componente(p: pd.DataFrame, fecha: pd.Timestamp, comps: list[str],
+                          previo: pd.Timestamp | None = None) -> dict[str, float]:
     """Cuántos puntos aportó cada componente a la variación del índice en la
-    semana que termina en `fecha` (contra 7 días antes): la diferencia de su
+    semana que termina en `fecha` (contra 7 días antes, o contra `previo`): la diferencia de su
     aporte (pts_*). Como los aportes suman índice - 50 cada día, estas
     diferencias suman exactamente el cambio del índice.
 
@@ -558,7 +559,8 @@ def cambio_por_componente(p: pd.DataFrame, fecha: pd.Timestamp, comps: list[str]
     demás) se reparte entre los otros en proporción a su aporte, así la suma
     no cambia.
     """
-    previo = fecha - pd.Timedelta(days=7)
+    if previo is None:
+        previo = fecha - pd.Timedelta(days=7)
     out = {c: _ultimo_hasta(p[f"pts_{c}"], fecha) - _ultimo_hasta(p[f"pts_{c}"], previo) for c in comps}
     # Sin dato nuevo = el valor no cambió desde el comienzo de la ventana del
     # promedio de la semana anterior: con el índice promediado en N días, un
