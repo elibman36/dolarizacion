@@ -274,9 +274,10 @@ IPD_BLOCKS = {
                             "label": "Volatilidad del CCL",
                             "frases": ("la volatilidad del CCL está por encima de lo habitual",
                                        "la volatilidad del CCL está por debajo de lo habitual")},
-            "riesgo_pais": {"transform": "diff",  "sign": +1, "centro_cero": True, "weight": 1.0,
+            "riesgo_pais": {"transform": "level", "sign": +1, "weight": 1.0,
                             "label": "Riesgo país",
-                            "frases": ("subió el riesgo país", "bajó el riesgo país")},
+                            "frases": ("el riesgo país está por encima de lo habitual",
+                                       "el riesgo país está por debajo de lo habitual")},
         },
     },
 }

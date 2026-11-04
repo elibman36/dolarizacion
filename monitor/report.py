@@ -252,7 +252,7 @@ def _txt_dato(v: dict | None, previo: bool = False) -> str:
 # Variables que el índice mira por su variación en dinero: en la tabla, sus
 # columnas de dato son su variación semanal promedio de los últimos 20 días
 # hábiles (lo que mira el índice), al cierre de cada semana.
-VARIACION_DE_VARIACION = ("reservas", "depositos_usd", "tasa", "riesgo_pais")
+VARIACION_DE_VARIACION = ("reservas", "depositos_usd")
 
 
 def tabla_aportes(blocks_cfg: dict, meta: dict, dpts: dict, sub1: dict, sub0: dict, i1: float, i0: float,
@@ -633,7 +633,7 @@ def _minis_ar(p: pd.DataFrame, semana: Semana, payload: dict | None = None) -> l
 
 # Clave de lo que deja de contar de la semana anterior (no se muestra: los
 # aportes de la semana no suman el cambio del índice).
-APENDICE_FLUJOS = '<b>Por su movimiento de la semana</b> (tipo de cambio real, reservas, BADLAR, depósitos en dólares y riesgo país). Se miden por cuánto se movieron en los últimos 5 días, centrado en cero: unas reservas que suben restan y un riesgo país que sube suma. Su aporte al cambio del índice compara el movimiento de esta semana con el de la anterior: si las reservas suben menos que la semana pasada, el índice sube; si el riesgo país sube lo mismo dos semanas seguidas, no lo mueve.'
+APENDICE_FLUJOS = '<b>Por su movimiento de la semana</b> (tipo de cambio real, reservas, BADLAR y depósitos en dólares). Se miden por cuánto se movieron en los últimos 5 días, centrado en cero: unas reservas que suben restan y una BADLAR que sube suma. Su aporte al cambio del índice compara el movimiento de esta semana con el de la anterior: si las reservas suben menos que la semana pasada, el índice sube; si la BADLAR sube lo mismo dos semanas seguidas, no lo mueve.'
 
 
 def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict | None = None) -> str:
@@ -749,7 +749,7 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
 
 <section class="section card partible">
   <h2>Qué explica el índice</h2>
-  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos {config.INDICE_SUAVIZADO} días hábiles, igual que el índice (en reservas, depósitos, BADLAR y riesgo país, de su variación semanal). {perfil["nota_variables"]}</p>
+  <p class="note">El dato de cada variable el viernes anterior y este, su variación y su aporte a la variación del índice frente a la semana anterior (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos {config.INDICE_SUAVIZADO} días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal). {perfil["nota_variables"]}</p>
   {tabla_html}
 </section>
 
@@ -795,7 +795,7 @@ def construir_html(semana: Semana, p: pd.DataFrame, payload: dict, perfil: dict 
 def _metodo_ar(pca_txt: str, pesos_b: dict | None = None) -> str:
     pesos_sub_txt = (": " + ", ".join(f"{_minus(config.IPD_BLOCKS[b]['label'])} {fmt(w * 100, 0)}%" for b, w in pesos_b.items())
                      if pesos_b else "")
-    return f"""<p>El Índice de Dolarización adapta el <i>Exchange Market Pressure Index</i> (Girton y Roper, 1977; Eichengreen, Rose y Wyplosz, 1996) a la economía bimonetaria argentina. Cada componente se transforma para que un valor más alto signifique más presión y se compara con los últimos dos años (mediana y desvío absoluto mediano, para que un episodio extremo no infle la escala). Para el oficial, las reservas, la BADLAR, los depósitos en dólares y el riesgo país, que se miden por su cambio en 5 días hábiles, el centro es cero y no la mediana: así una semana en que las reservas suben siempre resta presión, y una en que caen siempre suma (con la escala de sus dos años anteriores). Los componentes se agrupan en tres subíndices: <b>presión cambiaria</b> (tipo de cambio real (oficial deflactado por el CER), su volatilidad, reservas, tasa en pesos, brecha MEP / oficial y futuros de dólar vendidos por el BCRA, que son intervención como la venta de reservas), <b>dolarización de portafolios</b> (devaluación implícita y posición abierta en futuros de dólar, depósitos en dólares y compras de dólares de personas humanas: la demanda de cobertura) y <b>extranjerización de portafolios</b> (canje CCL / MEP, volatilidad del CCL y riesgo país). Dentro de cada subíndice, los pesos salen de componentes principales: cada componente pesa según cuánto se mueve junto con el resto (cargas del primer componente principal de los promedios mensuales desde 2003). Los tres subíndices se ponderan con el mismo método{pesos_sub_txt}. Las cargas negativas valen cero y ningún componente pesa menos del 10% de su subíndice. Varianza explicada por el primer componente: {pca_txt}.</p>"""
+    return f"""<p>El Índice de Dolarización adapta el <i>Exchange Market Pressure Index</i> (Girton y Roper, 1977; Eichengreen, Rose y Wyplosz, 1996) a la economía bimonetaria argentina. Cada componente se transforma para que un valor más alto signifique más presión y se compara con los últimos dos años (mediana y desvío absoluto mediano, para que un episodio extremo no infle la escala). Para el oficial, las reservas, la BADLAR y los depósitos en dólares, que se miden por su cambio en 5 días hábiles, el centro es cero y no la mediana: así una semana en que las reservas suben siempre resta presión, y una en que caen siempre suma (con la escala de sus dos años anteriores). Los componentes se agrupan en tres subíndices: <b>presión cambiaria</b> (tipo de cambio real (oficial deflactado por el CER), su volatilidad, reservas, tasa en pesos, brecha MEP / oficial y futuros de dólar vendidos por el BCRA, que son intervención como la venta de reservas), <b>dolarización de portafolios</b> (devaluación implícita y posición abierta en futuros de dólar, depósitos en dólares y compras de dólares de personas humanas: la demanda de cobertura) y <b>extranjerización de portafolios</b> (canje CCL / MEP, volatilidad del CCL y riesgo país). Dentro de cada subíndice, los pesos salen de componentes principales: cada componente pesa según cuánto se mueve junto con el resto (cargas del primer componente principal de los promedios mensuales desde 2003). Los tres subíndices se ponderan con el mismo método{pesos_sub_txt}. Las cargas negativas valen cero y ningún componente pesa menos del 10% de su subíndice. Varianza explicada por el primer componente: {pca_txt}.</p>"""
 
 
 # Apéndice metodológico: para cada componente, cómo se mide, qué lo hace
@@ -837,7 +837,7 @@ APENDICE_AR = {
     "vol_ccl": ("Volatilidad del CCL en los últimos 20 días hábiles, comparada con la de los dos años anteriores.",
                 "Subió la volatilidad del CCL: más incertidumbre en el dólar financiero.",
                 "Bajó la volatilidad del CCL."),
-    "riesgo_pais": ("Variación del riesgo país (EMBI Argentina) en 5 días hábiles, en puntos básicos.",
+    "riesgo_pais": ("Riesgo país (EMBI Argentina), en puntos básicos, comparado con los dos años anteriores.",
                     "Subió el riesgo país: más riesgo en la deuda argentina y más incentivo a salir de activos locales.",
                     "Bajó el riesgo país: mejora la confianza en los activos argentinos."),
 }

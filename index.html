@@ -185,7 +185,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     <div class="card-head">
       <h2>Qué explica el índice</h2>
     </div>
-    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas, depósitos, BADLAR y riesgo país, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
+    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
   </section>
   <section class="card" style="margin-bottom:16px">
     <h2>Subíndices</h2>
@@ -219,7 +219,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       <li><b>Dolarización de portafolios:</b> devaluación implícita y posición abierta en futuros, depósitos en dólares y compras de dólares de personas humanas.</li>
       <li><b>Extranjerización de portafolios:</b> canje (CCL / MEP), volatilidad del CCL y riesgo país.</li>
     </ul>
-    <p>Las reservas, los depósitos, la tasa, el tipo de cambio real y el riesgo país cuentan por su movimiento de los últimos 5 días hábiles; el resto, por su nivel frente a los dos años anteriores. Los pesos salen de componentes principales:</p>
+    <p>Las reservas, los depósitos, la tasa y el tipo de cambio real cuentan por su movimiento de los últimos 5 días hábiles; el resto, por su nivel frente a los dos años anteriores. Los pesos salen de componentes principales:</p>
     <div class="table-wrap"><table id="pesos-tbl"><thead><tr><th>Subíndice</th><th>Componente</th><th class="num">Peso en el subíndice</th><th class="num">Peso en el índice</th></tr></thead><tbody></tbody></table></div>
     <p class="note" id="pesos-nota"></p>
     <p class="note">Detalle de la metodología en el reporte semanal y en el repositorio.</p>
@@ -598,7 +598,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
         const data = k === "futuros_oi" ? media21(s.data) : k === "posicion_bcra" ? s.data.map(([d, v]) => [corrido(d, 35), v]) : s.data;
         valor = (f) => asof(data, f);
       }
-      const mov = ["reservas", "depositos_usd", "tasa", "riesgo_pais"].includes(k);
+      const mov = ["reservas", "depositos_usd"].includes(k);
       const v0 = promedio(valor, dHace7, mov), v1 = promedio(valor, h.date, mov);
       const u = unit.split(",")[0].replace("millones de USD", "M USD");
       const um = k === "tasa" ? [" pp", 2] : k === "riesgo_pais" ? [" pb", 0] : [" M USD", 0];
