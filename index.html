@@ -7,66 +7,91 @@
 <meta name="description" content="Seguimiento diario de la presión cambiaria y la dolarización de portafolios en Argentina: Índice de Dolarización (ID) y sus componentes.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.0/echarts.min.js"></script>
 <style>
+/* Marca Fundar: paleta y tipografía del Monitor de Empresas (empresas.fund.ar) */
 :root {
   color-scheme: light;
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --muted: #898781;
-  --grid: #e1e0d9;
-  --axis: #c3c2b7;
-  --border: rgba(11,11,11,0.10);
-  --wash: rgba(11,11,11,0.05);
-  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300;
-  --div-neg: #2a78d6; --div-pos: #e34948; --div-mid: #f0efec;
-  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
-  /* Escala divergente del índice 0-100: azul = apreciación, rojo = depreciación */
-  --dv-aprec_fuerte: #1c5cab; --dv-aprec: #6da7ec; --dv-neutral: #a3a29b; --dv-deprec: #ec8a89; --dv-deprec_fuerte: #c0302f;
-  --up-bad: #b42318; --down-good: #006300;
-  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --page: #ECEAE3;
+  --surface: #F4F3EE;
+  --ink: #161615;
+  --ink-2: #606060;
+  --muted: #8C8B86;
+  --grid: #D9D6CC;
+  --axis: #B8B5AC;
+  --border: rgba(22,22,21,0.10);
+  --wash: rgba(22,22,21,0.05);
+  /* Series: verde oscuro, rosa y celeste Fundar (separables con daltonismo) */
+  --s1: #1F6B4E; --s2: #ED8688; --s3: #87B2C1; --s4: #C6BF93; --s5: #9695B3; --s6: #B08968;
+  --div-neg: #2E8A66; --div-pos: #C4505A; --div-mid: #E2DFD6;
+  --good: #3B9E78; --warning: #C6BF93; --serious: #ED8688; --critical: #C4505A;
+  /* Escala divergente del índice 0-100: verde = apreciación, rosa = depreciación */
+  --dv-aprec_fuerte: #1F6B4E; --dv-aprec: #6ECFA8; --dv-neutral: #B8B5AC; --dv-deprec: #ED8688; --dv-deprec_fuerte: #C4505A;
+  --up-bad: #C4505A; --down-good: #2E8A66;
+  --verde: #3B9E78; --verde-3: #6ECFA8; --verde-palido: #D7EBE3;
+  --nav-bg: #161615; --nav-ink: #F2F2F2; --nav-muted: #999999;
+  --tt-bg: #161615; --tt-ink: #F2F2F2;
+  --font: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
-    --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+    --page: #161615; --surface: #1E1E1C; --ink: #F2F2F2; --ink-2: #B3B3B3;
+    --muted: #8A8983; --grid: #34342F; --axis: #55544F;
     --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
-    --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
-    --up-bad: #f97066; --down-good: #0ca30c;
-    --dv-aprec_fuerte: #86b6ef; --dv-aprec: #2a78d6; --dv-neutral: #6b6a64; --dv-deprec: #b03a39; --dv-deprec_fuerte: #f08584;
+    --s1: #8EE0BF; --s2: #E06A6D; --s3: #87B2C1; --s4: #C6BF93; --s5: #9695B3; --s6: #B08968;
+    --div-neg: #5BBA91; --div-pos: #ED8688; --div-mid: #3A3A36;
+    --up-bad: #ED8688; --down-good: #5BBA91;
+    --dv-aprec_fuerte: #A8E8CD; --dv-aprec: #3B9E78; --dv-neutral: #77766F; --dv-deprec: #C4505A; --dv-deprec_fuerte: #F6B9BA;
+    --verde-palido: #24372F; --nav-bg: #0C0C0B;
+    --tt-bg: #F2F2F2; --tt-ink: #161615;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7;
-  --muted: #898781; --grid: #2c2c2a; --axis: #383835;
+  --page: #161615; --surface: #1E1E1C; --ink: #F2F2F2; --ink-2: #B3B3B3;
+  --muted: #8A8983; --grid: #34342F; --axis: #55544F;
   --border: rgba(255,255,255,0.10); --wash: rgba(255,255,255,0.06);
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300;
-  --div-neg: #3987e5; --div-pos: #e66767; --div-mid: #383835;
-  --up-bad: #f97066; --down-good: #0ca30c;
-  --dv-aprec_fuerte: #86b6ef; --dv-aprec: #2a78d6; --dv-neutral: #6b6a64; --dv-deprec: #b03a39; --dv-deprec_fuerte: #f08584;
+  --s1: #8EE0BF; --s2: #E06A6D; --s3: #87B2C1; --s4: #C6BF93; --s5: #9695B3; --s6: #B08968;
+  --div-neg: #5BBA91; --div-pos: #ED8688; --div-mid: #3A3A36;
+  --up-bad: #ED8688; --down-good: #5BBA91;
+  --dv-aprec_fuerte: #A8E8CD; --dv-aprec: #3B9E78; --dv-neutral: #77766F; --dv-deprec: #C4505A; --dv-deprec_fuerte: #F6B9BA;
+  --verde-palido: #24372F; --nav-bg: #0C0C0B;
+  --tt-bg: #F2F2F2; --tt-ink: #161615;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
-body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.45; }
+body { background: var(--page); color: var(--ink); font-family: var(--font); font-size: 15px; line-height: 1.45; -webkit-font-smoothing: antialiased; }
 .wrap { max-width: 1240px; margin: 0 auto; padding: 24px 16px 64px; }
-header.top { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
-h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
-h2 { font-size: 16px; margin: 0 0 2px; }
+header.top { display: flex; flex-wrap: wrap; gap: 18px 28px; align-items: center; justify-content: space-between; margin-bottom: 18px;
+  background: var(--nav-bg); color: var(--nav-ink); border-radius: 10px; padding: 22px 26px; }
+.top-brand { display: flex; align-items: center; gap: 22px; min-width: 0; }
+.logo-fundar { display: block; width: 92px; height: auto; flex-shrink: 0; }
+.top-brand .titulos { border-left: 1px solid rgba(255,255,255,0.18); padding-left: 22px; min-width: 0; }
+.eyebrow { display: block; font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 4px; }
+.eyebrow b { color: var(--verde); font-weight: 600; margin-right: 6px; font-variant-numeric: tabular-nums; }
+header.top .eyebrow { color: var(--nav-muted); }
+header.top .eyebrow b { color: var(--verde-3); }
+header.top h1 { color: var(--nav-ink); }
+header.top .sub { color: #D9D9D9; }
+header.top .seg { background: transparent; border-color: rgba(255,255,255,0.22); }
+header.top .seg button { color: var(--nav-muted); }
+header.top .seg button:hover { background: rgba(255,255,255,0.08); color: var(--nav-ink); }
+header.top .seg button[aria-pressed="true"] { background: var(--nav-ink); color: #161615; }
+header.top .btn { background: transparent; border-color: rgba(255,255,255,0.22); color: var(--nav-ink); }
+header.top .btn:hover { background: rgba(255,255,255,0.08); color: var(--nav-ink); }
+h1 { font-size: 28px; line-height: 1.12; font-weight: 700; margin: 0; letter-spacing: -0.015em; }
+h2 { font-size: 17px; line-height: 1.25; font-weight: 700; margin: 0 0 3px; }
 .sub { color: var(--ink-2); margin: 4px 0 0; }
 .note { color: var(--muted); font-size: 13px; margin: 0; }
 .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--surface); }
-.seg button { font: inherit; font-size: 13px; border: 0; background: none; color: var(--ink-2); padding: 6px 10px; cursor: pointer; }
+.seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--border); border-radius: 99px; background: var(--page); }
+.seg button { font: inherit; font-size: 12.5px; border: 0; border-radius: 99px; background: none; color: var(--ink-2); padding: 5px 11px; cursor: pointer; }
 .seg button:hover { background: var(--wash); }
-.seg button[aria-pressed="true"] { color: var(--ink); font-weight: 600; background: var(--wash); }
-.btn { font: inherit; font-size: 13px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--ink-2); padding: 6px 10px; cursor: pointer; text-decoration: none; }
+.seg button[aria-pressed="true"] { color: var(--surface); font-weight: 600; background: var(--ink); }
+.btn { font: inherit; font-size: 12.5px; border: 1px solid var(--border); border-radius: 99px; background: var(--surface); color: var(--ink-2); padding: 6px 13px; cursor: pointer; text-decoration: none; white-space: nowrap; }
 .btn:hover { background: var(--wash); color: var(--ink); }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 18px; min-width: 0; }
 .hero { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; margin-bottom: 16px; }
-.hero-num { font-size: 56px; font-weight: 650; line-height: 1; letter-spacing: -0.02em; margin: 10px 0 6px; }
+.hero-num { font-size: 56px; font-weight: 700; line-height: 1; letter-spacing: -0.02em; margin: 10px 0 6px; }
 .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; padding: 3px 10px 3px 6px; border-radius: 999px; background: var(--wash); color: var(--ink); }
 .pill .dot { width: 14px; height: 14px; border-radius: 50%; display: inline-grid; place-items: center; color: #fff; font-size: 10px; line-height: 1; }
 .gauge { margin-top: 18px; }
@@ -79,7 +104,8 @@ h2 { font-size: 16px; margin: 0 0 2px; }
 .hero-num small { font-size: 20px; font-weight: 500; color: var(--muted); letter-spacing: 0; margin-left: 4px; }
 [hidden] { display: none !important; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-top: 14px; font-size: 13px; color: var(--ink-2); }
-.kv b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kv b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#theme { font-family: system-ui, sans-serif; font-size: 15px; line-height: 1; padding: 5px 11px; }
 .kv b small { font-weight: 400; color: var(--muted); }
 .kv .sw { display: inline-block; width: 12px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
 .subs-t { margin-top: 14px; font-size: 12px; color: var(--muted); }
@@ -110,7 +136,11 @@ table.contrib tr td.up { color: var(--div-pos); } table.contrib tr td.down { col
 .chart { width: 100%; height: 300px; }
 .chart.tall { height: 360px; }
 .chart.small { height: 250px; }
-.section-title { margin: 28px 0 10px; font-size: 18px; }
+.section-title { margin: 30px 0 12px; font-size: 12px; font-weight: 400; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.section-title b { color: var(--verde); font-weight: 600; margin-right: 6px; }
+.firma { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--border); }
+.firma .marca { font-size: 12px; color: var(--muted); }
+.firma .marca b { color: var(--ink); font-weight: 700; }
 .empty { color: var(--muted); font-size: 13px; padding: 24px 8px; text-align: center; border: 1px dashed var(--axis); border-radius: 8px; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--grid); }
@@ -122,7 +152,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .status-list span.err { color: var(--critical); }
 .method p, .method li { color: var(--ink-2); font-size: 14px; }
 .method code { font-size: 13px; }
-.anexo { max-width: 860px; width: calc(100% - 32px); max-height: 85vh; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); color: var(--ink); padding: 20px 24px; }
+.anexo { max-width: 860px; width: calc(100% - 32px); max-height: 85vh; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 20px 24px; }
 .anexo::backdrop { background: rgba(0, 0, 0, 0.35); }
 .anexo-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
 .anexo-head h2 { margin: 0; }
@@ -131,15 +161,24 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .hero, .grid2 { grid-template-columns: 1fr; }
   .grid3 { grid-template-columns: 1fr; }
   .hero-num { font-size: 44px; }
+  header.top { padding: 18px 16px; }
+  .top-brand { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .top-brand .titulos { border-left: 0; padding-left: 0; }
+  .logo-fundar { width: 72px; }
+  h1 { font-size: 23px; }
 }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
-    <div>
-      <h1>Monitor de Dolarización</h1>
-      <p class="sub" id="sub">Presión cambiaria y demanda de cobertura en Argentina, con datos diarios.</p>
+    <div class="top-brand">
+      <img class="logo-fundar" alt="Fundar" src="data:image/png;base64,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">
+      <div class="titulos">
+        <span class="eyebrow">Monitor diario</span>
+        <h1>Monitor de Dolarización</h1>
+        <p class="sub" id="sub">Presión cambiaria y demanda de cobertura en Argentina, con datos diarios.</p>
+      </div>
     </div>
     <div class="controls">
       <div class="seg" id="range" role="group" aria-label="Período">
@@ -157,6 +196,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
   <section class="hero">
     <div class="card" id="hero">
+      <span class="eyebrow"><b>01</b>Índice</span>
       <h2>Índice de Dolarización</h2>
       <p class="note">De 0 a 100. 50 es neutral; debajo, presión apreciatoria (alivio); arriba, presión depreciatoria.</p>
       <div class="hero-num" id="hero-num">–</div>
@@ -183,21 +223,22 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
   <section class="card" style="margin-bottom:16px">
     <div class="card-head">
-      <h2>Qué explica el índice</h2>
+      <div><span class="eyebrow"><b>02</b>Componentes</span><h2>Qué explica el índice</h2></div>
     </div>
-    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; azul, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
+    <p class="note">El dato de cada variable hoy y hace una semana, su variación y su aporte a la variación del índice (rojo, a la suba; verde, a la baja), en puntos: suman el cambio del índice. El aporte del tipo de cambio se mide contra la inflación. Todos los datos son promedios de los últimos <span class="n-prom">20</span> días hábiles, igual que el índice (en reservas y depósitos, de su variación semanal).</p>    <div class="table-wrap"><table id="contrib-tbl" class="contrib"><thead></thead><tbody></tbody></table></div>
   </section>
   <section class="card" style="margin-bottom:16px">
+    <span class="eyebrow"><b>03</b>Subíndices</span>
     <h2>Subíndices</h2>
     <p class="note" id="blocks-note">Cada subíndice en su propia escala de 0 a 100, con el mismo método que el índice.</p>
     <div class="chart" id="c-blocks" role="img" aria-label="Índice y subíndices en escala 0 a 100"></div>
   </section>
 
 
-  <h2 class="section-title">Variables</h2>
+  <h2 class="section-title"><b>04</b>Variables</h2>
   <section class="grid3" id="multiples"></section>
 
-  <h2 class="section-title">Indicadores de menor frecuencia</h2>
+  <h2 class="section-title"><b>05</b>Indicadores de menor frecuencia</h2>
   <section class="grid1">
     <div class="card">
       <h2>Compras de USD de personas humanas</h2>
@@ -207,7 +248,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   </section>
 
   </div>
-  <p class="note" id="foot" style="margin-top:16px"></p>
+  <div class="firma">
+    <p class="note" id="foot"></p>
+    <span class="marca">Un monitor de <b>Fundar</b> · fund.ar</span>
+  </div>
 </div>
 
 <dialog id="anexo" class="anexo method" aria-labelledby="anexo-t">
@@ -325,8 +369,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       grid: { left: 8, right: 16, top: 16, bottom: 8, containLabel: true },
       tooltip: {
         trigger: "axis", confine: true,
-        backgroundColor: css("--surface"), borderColor: css("--border"),
-        textStyle: { color: css("--ink"), fontSize: 12 },
+        backgroundColor: css("--tt-bg"), borderColor: css("--tt-bg"), borderRadius: 8, padding: [8, 10],
+        textStyle: { color: css("--tt-ink"), fontSize: 12 },
         axisPointer: { type: "line", lineStyle: { color: css("--axis") } },
       },
       xAxis: {
@@ -702,7 +746,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
             handleStyle: { color: css("--surface"), borderColor: css("--axis") }, moveHandleStyle: { color: css("--axis") } },
         ],
         tooltip: {
-          trigger: "axis", confine: true, backgroundColor: css("--surface"), borderColor: css("--border"), textStyle: { color: css("--ink"), fontSize: 12 },
+          trigger: "axis", confine: true, backgroundColor: css("--tt-bg"), borderColor: css("--tt-bg"), borderRadius: 8, padding: [8, 10], textStyle: { color: css("--tt-ink"), fontSize: 12 },
           formatter: (ps) => {
             const r = byM.get(ps[0].name);
             return `${ps[0].name}<br><b>Netas: ${nf(r.netas_usd_millones, 0)} M USD</b>` +

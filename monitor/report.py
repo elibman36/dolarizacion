@@ -898,8 +898,11 @@ def html_a_pdf(html_txt: str, destino: Path, titulo: str = "Monitor de Dolarizac
     with sync_playwright() as pw:
         kwargs = {}
         exe = shutil.which("chromium") or shutil.which("chromium-browser")
-        local = Path("/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
-        if local.exists():
+        # Chromium preinstalado en el contenedor de trabajo (la ruta cambia
+        # entre versiones); en GitHub Actions se usa el que instala playwright.
+        local = next((c for c in (Path("/opt/pw-browsers/chromium"),
+                                  Path("/opt/pw-browsers/chromium-1194/chrome-linux/chrome")) if c.is_file()), None)
+        if local:
             kwargs["executable_path"] = str(local)
         elif exe:
             kwargs["executable_path"] = exe
