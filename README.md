@@ -44,7 +44,7 @@ fuente con ✕. También se puede correr a mano desde *Actions → Run workflow*
 
 El tablero se publica con **GitHub Pages** (Settings → Pages → Deploy from
 branch `main`, carpeta `/`) en
-<https://elibman36.github.io/monitor-dolarizacion/>.
+<https://elibman36.github.io/dolarizacion/>.
 
 Para correrlo localmente:
 

@@ -28,7 +28,7 @@ BCRA_BASES = [
 ]
 ARGENTINADATOS_BASE = "https://api.argentinadatos.com/v1"
 A3_CLOSING_PRICES = "https://apicem.matbarofex.com.ar/api/v2/closing-prices"
-USER_AGENT = "monitor-dolarizacion/1.0 (+https://github.com/elibman36/monitor-dolarizacion)"
+USER_AGENT = "monitor-dolarizacion/1.0 (+https://github.com/elibman36/dolarizacion)"
 
 _session = requests.Session()
 _session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})

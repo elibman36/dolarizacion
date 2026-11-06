@@ -21,6 +21,7 @@ import shutil
 from pathlib import Path
 
 from . import config
+from .report import DASHBOARD_URL
 
 VARIANTES = {
     "ar": {"data": "data", "reportes": "reportes", "titulo": None},
@@ -84,7 +85,7 @@ def armar(variante: str, salida: Path) -> Path:
     r = r.replace('<head><meta charset="utf-8">', "<head>" + BARRA_REPORTE + '<meta charset="utf-8">', 1)
     r = r.replace("<body>", '<body><div class="barra-art"><a href="../index.html">← Volver al monitor</a>'
                   '<button id="dl-pdf" type="button" hidden>Descargar PDF</button></div>', 1)
-    r = r.replace('href="https://elibman36.github.io/monitor-dolarizacion/"', 'href="../index.html"')
+    r = r.replace(f'href="{DASHBOARD_URL}"', 'href="../index.html"')
     r = r.replace("</body></html>", _descarga("ultimo.pdf", nombre_pdf) + "</body></html>")
     (salida / "reportes" / "ultimo.html").write_text(r, encoding="utf-8")
     return pagina

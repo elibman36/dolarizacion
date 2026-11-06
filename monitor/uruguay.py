@@ -123,7 +123,7 @@ EVENTS = [
 ]
 
 _session = requests.Session()
-_session.headers.update({"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/monitor-dolarizacion)"})
+_session.headers.update({"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/dolarizacion)"})
 
 
 def _verify() -> bool:

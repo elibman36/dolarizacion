@@ -17,7 +17,7 @@ from . import build, config, indicators
 log = logging.getLogger("monitor.comun")
 
 session = requests.Session()
-session.headers.update({"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/monitor-dolarizacion)"})
+session.headers.update({"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/dolarizacion)"})
 
 
 def get(url: str, retries: int = 4, **kw) -> requests.Response:

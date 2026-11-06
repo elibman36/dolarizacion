@@ -42,7 +42,7 @@ REPORTS_DIR = config.ROOT / "reportes"
 # fecha del viernes de la semana informada.
 TEXTOS_DIR = REPORTS_DIR / "textos"
 PANEL_CSV = config.DATA_DIR / "panel_diario.csv"
-DASHBOARD_URL = "https://elibman36.github.io/monitor-dolarizacion/"
+DASHBOARD_URL = "https://elibman36.github.io/dolarizacion/"
 
 # Paleta (misma que el tablero, modo claro).
 INK, INK2, MUTED, GRID, AXIS = "#0b0b0b", "#52514e", "#898781", "#e1e0d9", "#c3c2b7"
