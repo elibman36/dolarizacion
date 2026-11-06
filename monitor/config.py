@@ -49,6 +49,23 @@ BCRA_VARIABLES = {
         "unit": "% n.a.",
         "optional": True,
     },
+    # Tasas de mercado a 1 día, para probar como alternativa a la BADLAR:
+    # pases entre terceros (rueda REPO, la referencia de la caución) y call
+    # interbancario. No entran al índice publicado.
+    "pases_1d": {
+        "id": 150,
+        "regex": r"pases entre terceros a 1 d",
+        "label": "Tasa de pases entre terceros a 1 día (caución)",
+        "unit": "% n.a.",
+        "optional": True,
+    },
+    "baibar": {
+        "id": 11,
+        "regex": r"baibar",
+        "label": "Tasa de call interbancario (BAIBAR)",
+        "unit": "% n.a.",
+        "optional": True,
+    },
     # Sólo para el núcleo comparable entre países (intervención del BCRA).
     "compras_bcra": {
         "id": 78,
