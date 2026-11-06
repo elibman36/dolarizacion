@@ -198,6 +198,17 @@ def derived_series(df: pd.DataFrame, futuros: pd.DataFrame, compras: pd.DataFram
         tasa = df["badlar"]
     if "tamar" in df:
         tasa = tasa.fillna(df["tamar"])
+    # Versiones paralelas: otra tasa de mercado (p. ej. pases entre terceros
+    # a 1 día) desde su primer dato, con la BADLAR sólo antes de ese dato.
+    fuente = getattr(config, "TASA_FUENTE", "badlar")
+    if fuente != "badlar" and fuente in df and df[fuente].notna().any():
+        alt = df[fuente]
+        inicio = alt.first_valid_index()
+        alt = alt.loc[inicio:].ffill(limit=5)
+        n = getattr(config, "TASA_SUAVIZADO_DIAS", 1)
+        if n > 1:
+            alt = alt.rolling(n, min_periods=1).mean()
+        tasa = tasa.where(tasa.index < inicio, alt.reindex(tasa.index))
     out["tasa"] = tasa
     dev = implied_devaluation(futuros, oficial)
     if not dev.empty:

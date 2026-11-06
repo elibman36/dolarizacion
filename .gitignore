@@ -13,3 +13,5 @@ data/cero/
 reportes/cero/ultimo.*
 data/mixto*/
 reportes/mixto*/ultimo.*
+data/tasa_*/
+reportes/tasa_*/ultimo.*

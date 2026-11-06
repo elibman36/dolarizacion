@@ -319,6 +319,12 @@ IPD_PERCENTILE_WINDOW = 504
 # cambia menos de un día a otro (sin promedio, el cambio semanal promedio era de
 # unos 18 puntos, contra 6 con 20 días, oct-2026).
 INDICE_SUAVIZADO = 20
+
+# Tasa del componente "tasa": la BADLAR en el índice publicado. Las versiones
+# paralelas (monitor.tasas) pueden usar otra serie de BCRA_VARIABLES, p. ej.
+# "pases_1d", promediada en TASA_SUAVIZADO_DIAS días hábiles.
+TASA_FUENTE = "badlar"
+TASA_SUAVIZADO_DIAS = 1
 INDICE_SIGMA = None  # None = desvío histórico calculado en cada corrida
 INDICE_TRAMOS = [
     # (desde, hasta, clave, etiqueta) - escala divergente, de azul a rojo
