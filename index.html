@@ -245,6 +245,12 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       <p class="note">Millones de USD por mes.</p>
       <div class="chart" id="c-ph" role="img" aria-label="Compras de dólares de personas humanas"></div>
     </div>
+    <div class="card">
+      <h2>Licitaciones del Tesoro: instrumentos dólar linked</h2>
+      <p class="note">Millones de USD de valor nominal, por licitación: lo que ofrecieron los inversores y lo que adjudicó el Tesoro. Es demanda de cobertura cambiaria que absorbe el Tesoro. No incluye bonos duales ni conversiones. Fuente: Secretaría de Finanzas.</p>
+      <div class="kv" id="dl-kv"></div>
+      <div class="chart" id="c-dl" role="img" aria-label="Instrumentos dólar linked ofrecidos y adjudicados en las licitaciones del Tesoro"></div>
+    </div>
   </section>
 
   </div>
@@ -765,6 +771,47 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     }
   }
 
+  function renderLicitaciones() {
+    const lic = (DATA.monthly && DATA.monthly.licitaciones_dl) || [];
+    if (!lic.length) { document.getElementById("dl-kv").innerHTML = ""; return emptyState("c-dl", "Sin datos de licitaciones todavía."); }
+    const u = lic[lic.length - 1];
+    const fecha = new Date(u.fecha + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "long", year: "numeric" });
+    document.getElementById("dl-kv").innerHTML = `<span>Última licitación</span><b>${fecha}</b>
+      <span>Adjudicado / ofrecido</span><b>USD ${nf(u.adjudicado_usd, 0)} M / USD ${nf(u.ofertado_usd, 0)} M <small>(${u.instrumentos})</small></b>`;
+    const c = mount("c-dl");
+    const days = rangeDays ? Math.max(rangeDays, 730) : 0;
+    const desdeF = days ? new Date(new Date(u.fecha) - days * 864e5).toISOString().slice(0, 10) : lic[0].fecha;
+    const desde = (lic.find((r) => r.fecha >= desdeF) || lic[0]).fecha;
+    const byF = new Map(lic.map((r) => [r.fecha, r]));
+    c.setOption({
+      animation: false, textStyle: { fontFamily: css("--font"), color: css("--ink-2") },
+      grid: { left: 8, right: 16, top: 36, bottom: 34, containLabel: true },
+      dataZoom: [
+        { type: "inside", xAxisIndex: 0, filterMode: "filter", startValue: desde },
+        { type: "slider", xAxisIndex: 0, filterMode: "filter", startValue: desde, height: 14, bottom: 4, showDetail: false,
+          borderColor: css("--border"), fillerColor: css("--wash"), backgroundColor: "transparent",
+          dataBackground: { lineStyle: { color: css("--axis") }, areaStyle: { color: css("--wash") } },
+          handleStyle: { color: css("--surface"), borderColor: css("--axis") }, moveHandleStyle: { color: css("--axis") } },
+      ],
+      tooltip: {
+        trigger: "axis", confine: true, backgroundColor: css("--tt-bg"), borderColor: css("--tt-bg"), borderRadius: 8, padding: [8, 10],
+        textStyle: { color: css("--tt-ink"), fontSize: 12 },
+        formatter: (ps) => {
+          const r = byF.get(ps[0].name);
+          return `Licitación del ${ps[0].name}<br><b>Adjudicado: USD ${nf(r.adjudicado_usd, 0)} M</b><br>Ofrecido: USD ${nf(r.ofertado_usd, 0)} M` +
+            (r.instrumentos ? `<br><span style="opacity:.75">${r.instrumentos}</span>` : "");
+        },
+      },
+      xAxis: { type: "category", data: lic.map((r) => r.fecha), axisTick: { show: false }, axisLine: { lineStyle: { color: css("--axis") } }, axisLabel: { color: css("--muted"), fontSize: 11, hideOverlap: true } },
+      yAxis: { type: "value", axisLabel: { color: css("--muted"), fontSize: 11, formatter: (v) => nf(v, 0) }, splitLine: { lineStyle: { color: css("--grid") } } },
+      legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 12, itemHeight: 3, textStyle: { color: css("--ink-2"), fontSize: 12 } },
+      series: [
+        { name: "Ofrecido", type: "bar", barMaxWidth: 14, barGap: "10%", data: lic.map((r) => r.ofertado_usd), itemStyle: { color: css("--s3"), borderRadius: [4, 4, 0, 0] } },
+        { name: "Adjudicado", type: "bar", barMaxWidth: 14, data: lic.map((r) => r.adjudicado_usd), itemStyle: { color: css("--s1"), borderRadius: [4, 4, 0, 0] } },
+      ],
+    });
+  }
+
   function renderPesos() {
     const tb = document.querySelector("#pesos-tbl tbody");
     if (!tb) return;
@@ -785,7 +832,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
   function renderCharts() {
     charts.length = 0;
-    renderIndex(); renderBlocks(); renderContrib(); renderMultiples(); renderMonthly();
+    renderIndex(); renderBlocks(); renderContrib(); renderMultiples(); renderMonthly(); renderLicitaciones();
   }
 
   // Futuros siempre en dólares: cada contrato es de USD 1.000.

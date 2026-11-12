@@ -15,7 +15,7 @@ from datetime import datetime, timezone
 
 import pandas as pd
 
-from . import config, indicators, sources
+from . import config, indicators, licitaciones, sources
 
 log = logging.getLogger("monitor")
 
@@ -168,6 +168,19 @@ def load_flujos_financieros() -> pd.DataFrame:
     """Flujos de la cuenta financiera (se descargan junto con la FAE)."""
     path = config.SERIES_DIR / f"{FLUJOS_CACHE}.csv"
     return pd.read_csv(path, dtype={"fecha": str}) if path.exists() else pd.DataFrame()
+
+
+def load_licitaciones_dl(offline: bool) -> list[dict]:
+    """Instrumentos dólar linked adjudicados en cada licitación del Tesoro
+    (Secretaría de Finanzas). No entran al índice: se muestran aparte."""
+    if not offline:
+        try:
+            licitaciones.actualizar()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("Licitaciones del Tesoro no disponibles (%s); uso copia guardada", exc)
+    g = licitaciones.por_licitacion()
+    return [{"fecha": r["fecha"], "ofertado_usd": _clean(r["ofertado_usd"]), "adjudicado_usd": _clean(r["adjudicado_usd"]),
+             "instrumentos": r["instrumentos"]} for r in g.to_dict("records")]
 
 
 POSICION_BCRA_CACHE = "posicion_futuros_bcra"
@@ -503,6 +516,7 @@ def run(offline: bool = False) -> dict:
     publicar = {**daily, "posicion_bcra": indicators.posicion_bcra_mensual(posicion_bcra),
                 **indicators.reservas_netas_mensual(posicion_bcra, load_fmi_programa(offline))}
     payload = build_payload(panel, ipd, compras, status, publicar, flujos=load_flujos_financieros())
+    payload["monthly"]["licitaciones_dl"] = load_licitaciones_dl(offline)
 
     # Panel diario completo, útil para análisis en Excel / R / Stata.
     out_panel = panel.copy()
