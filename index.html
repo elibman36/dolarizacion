@@ -247,7 +247,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     </div>
     <div class="card">
       <h2>Licitaciones del Tesoro: instrumentos dólar linked</h2>
-      <p class="note">Millones de USD de valor nominal, por licitación: lo que ofrecieron los inversores y lo que adjudicó el Tesoro. Es demanda de cobertura cambiaria que absorbe el Tesoro. No incluye bonos duales ni conversiones. Fuente: Secretaría de Finanzas.</p>
+      <p class="note">Millones de USD de valor nominal, por licitación: lo que ofrecieron los inversores y lo que adjudicó el Tesoro. Es demanda de cobertura cambiaria que absorbe el Tesoro; al índice entra el financiamiento neto (lo adjudicado en 30 días menos lo que venció). No incluye bonos duales ni conversiones. Fuente: Secretaría de Finanzas.</p>
       <div class="kv" id="dl-kv"></div>
       <div class="chart" id="c-dl" role="img" aria-label="Instrumentos dólar linked ofrecidos y adjudicados en las licitaciones del Tesoro"></div>
     </div>
@@ -263,10 +263,10 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 <dialog id="anexo" class="anexo method" aria-labelledby="anexo-t">
   <div class="anexo-head"><h2 id="anexo-t">Anexo metodológico</h2><button class="btn" id="anexo-cerrar" aria-label="Cerrar">Cerrar</button></div>
 
-    <p>El índice mide la presión sobre el peso en una escala de 0 a 100: 50 es neutral, arriba hay presión hacia la depreciación y abajo, alivio. Cada día es el promedio de los últimos <span class="n-prom">20</span> días hábiles. Combina 13 variables en tres subíndices:</p>
+    <p>El índice mide la presión sobre el peso en una escala de 0 a 100: 50 es neutral, arriba hay presión hacia la depreciación y abajo, alivio. Cada día es el promedio de los últimos <span class="n-prom">20</span> días hábiles. Combina 14 variables en tres subíndices:</p>
     <ul>
       <li><b>Presión cambiaria:</b> tipo de cambio real, su volatilidad, reservas, tasa BADLAR, brecha MEP / oficial y futuros vendidos por el BCRA.</li>
-      <li><b>Dolarización de portafolios:</b> devaluación implícita y posición abierta en futuros, depósitos en dólares y compras de dólares de personas humanas.</li>
+      <li><b>Dolarización de portafolios:</b> devaluación implícita y posición abierta en futuros, depósitos en dólares, compras de dólares de personas humanas y financiamiento neto del Tesoro en dólar linked.</li>
       <li><b>Extranjerización de portafolios:</b> canje (CCL / MEP), volatilidad del CCL y riesgo país.</li>
     </ul>
     <p>Las reservas, los depósitos, la tasa y el tipo de cambio real cuentan por su movimiento de los últimos 5 días hábiles; el resto, por su nivel frente a los dos años anteriores. Los pesos salen de componentes principales:</p>

@@ -277,6 +277,15 @@ IPD_BLOCKS = {
                            "label": "Compras de USD de personas humanas (FAE)",
                            "frases": ("las compras de dólares de personas humanas superan su promedio de 12 meses",
                                       "las compras de dólares de personas humanas están por debajo de su promedio de 12 meses")},
+            # Financiamiento neto del Tesoro en dólar linked: lo adjudicado en
+            # las licitaciones de los últimos LICIT_DL_VENTANA días menos lo
+            # que venció en esos días (millones de USD), frente a su promedio
+            # de 12 meses. Es cobertura cambiaria nueva que toma el mercado.
+            # Empieza en octubre de 2020.
+            "licit_dl": {"transform": "desvio_12m", "sign": +1, "weight": 1.0,
+                         "label": "Financiamiento neto en dólar linked",
+                         "frases": ("el Tesoro colocó más dólar linked del que venció (más demanda de cobertura)",
+                                    "venció más dólar linked del que colocó el Tesoro (se desarma cobertura)")},
         },
     },
     "extranjerizacion": {
@@ -324,6 +333,8 @@ INDICE_SUAVIZADO = 20
 # paralelas (monitor.tasas) pueden usar otra serie de BCRA_VARIABLES, p. ej.
 # "pases_1d", promediada en TASA_SUAVIZADO_DIAS días hábiles.
 TASA_FUENTE = "badlar"
+# Días corridos de licitaciones dólar linked que suma el componente licit_dl.
+LICIT_DL_VENTANA = 30
 TASA_SUAVIZADO_DIAS = 1
 INDICE_SIGMA = None  # None = desvío histórico calculado en cada corrida
 INDICE_TRAMOS = [

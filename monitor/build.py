@@ -170,14 +170,25 @@ def load_flujos_financieros() -> pd.DataFrame:
     return pd.read_csv(path, dtype={"fecha": str}) if path.exists() else pd.DataFrame()
 
 
-def load_licitaciones_dl(offline: bool) -> list[dict]:
-    """Instrumentos dólar linked adjudicados en cada licitación del Tesoro
-    (Secretaría de Finanzas). No entran al índice: se muestran aparte."""
+def licitaciones_neto(offline: bool) -> pd.Series:
+    """Financiamiento neto del Tesoro en dólar linked (adjudicado menos
+    vencimientos en LICIT_DL_VENTANA días), por día. Baja antes los
+    comunicados nuevos de la Secretaría de Finanzas."""
     if not offline:
         try:
             licitaciones.actualizar()
         except Exception as exc:  # noqa: BLE001
             log.warning("Licitaciones del Tesoro no disponibles (%s); uso copia guardada", exc)
+    try:
+        return licitaciones.flujo_neto(config.LICIT_DL_VENTANA)["neto"]
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Licitaciones del Tesoro: sin datos para el financiamiento neto (%s)", exc)
+        return pd.Series(dtype=float)
+
+
+def load_licitaciones_dl(offline: bool) -> list[dict]:
+    """Totales por licitación (ofrecido y adjudicado en dólar linked), para el
+    gráfico del tablero. La descarga la hace licitaciones_neto."""
     g = licitaciones.por_licitacion()
     return [{"fecha": r["fecha"], "ofertado_usd": _clean(r["ofertado_usd"]), "adjudicado_usd": _clean(r["adjudicado_usd"]),
              "instrumentos": r["instrumentos"]} for r in g.to_dict("records")]
@@ -335,6 +346,8 @@ SERIES_META = {
     "riesgo_pais": ("Riesgo país", "pb", "ArgentinaDatos (JP Morgan EMBI)"),
     "reservas": ("Reservas internacionales brutas", "millones de USD", "BCRA"),
     "tasa": ("Tasa BADLAR bancos privados", "% n.a.", "BCRA"),
+    "licit_dl": ("Financiamiento neto en dólar linked (adjudicado menos vencimientos, 30 días)", "millones de USD",
+                 "Secretaría de Finanzas"),
     "depositos_usd": ("Depósitos en dólares", "millones de USD", "BCRA"),
     "deval_implicita": ("Devaluación implícita en futuros a 90 días", "% TNA", "A3 Mercados"),
     "deval_implicita_mensual": ("Devaluación mensual implícita en futuros (90 días)", "% mensual", "A3 Mercados"),
@@ -509,6 +522,7 @@ def run(offline: bool = False) -> dict:
     compras = indicators.monthly_fx_purchases(load_compras_personas_humanas(offline))
     posicion_bcra = load_posicion_bcra(offline)
     panel = indicators.derived_series(panel, futuros, compras, posicion_bcra)
+    panel["licit_dl"] = licitaciones_neto(offline).reindex(panel.index)
     ipd = indicators.compute_ipd(panel)
 
     # La posición del BCRA se publica con su fecha real (fin de mes), no con
