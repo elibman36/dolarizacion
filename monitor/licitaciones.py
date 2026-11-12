@@ -30,7 +30,7 @@ log = logging.getLogger(__name__)
 BASE = "https://www.argentina.gob.ar"
 NOTICIAS = BASE + "/economia/finanzas/noticias"
 COLUMNAS = ["fecha", "tipo", "ticker", "instrumento", "vno_ofertado_usd", "vno_adjudicado_usd",
-            "ve_adjudicado_ars", "url"]
+            "ve_adjudicado_ars", "url", "vencimiento", "vno_circulacion_usd"]
 _UA = {"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/dolarizacion)"}
 _MESES = {m: i + 1 for i, m in enumerate(
     "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split())}
@@ -83,6 +83,14 @@ def _num(x: str) -> float | None:
         return None
 
 
+def _vto(l: str) -> str | None:
+    m = re.search(r"VENCIMIENTO (\d{1,2}) DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})", l.upper())
+    if not m:
+        return None
+    mes = _MESES.get(m.group(2).lower().replace("é", "e").replace("á", "a"))
+    return f"{m.group(3)}-{mes:02d}-{int(m.group(1)):02d}" if mes else None
+
+
 def parse(t: str, url: str = "") -> list[dict]:
     """Instrumentos dólar linked de un comunicado de resultados."""
     L = _lineas(t)
@@ -132,9 +140,13 @@ def parse(t: str, url: str = "") -> list[dict]:
             m = re.search(r"VENCIMIENTO (\d{1,2}) DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})", l.upper())
             tk = f"vto {m.group(1)}-{m.group(2).lower()[:3]}-{m.group(3)}" if m else ""
         tipo = "dual" if re.search(r"DUAL", l, re.I) else "dl"
+        # La última columna es el VNO total en circulación después de la
+        # licitación (millones de USD): el stock de ese instrumento.
+        circ = nums[-1] if len(nums) >= 5 else None
         out.append({"fecha": fecha, "tipo": tipo, "ticker": tk, "instrumento": l[:200],
                     "vno_ofertado_usd": usd[0], "vno_adjudicado_usd": usd[1],
-                    "ve_adjudicado_ars": pes[0] if pes else None, "url": url})
+                    "ve_adjudicado_ars": pes[0] if pes else None, "url": url,
+                    "vencimiento": _vto(l), "vno_circulacion_usd": circ})
     if not out:
         # Formato de 2020: un solo bono, con los totales en dólares (no en
         # millones) en el texto.
@@ -146,7 +158,8 @@ def parse(t: str, url: str = "") -> list[dict]:
             m = re.search(r"VENCIMIENTO (\d{1,2}) DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})", bono.upper())
             out.append({"fecha": fecha, "tipo": "dl", "ticker": f"vto {m.group(1)}-{m.group(2).lower()[:3]}-{m.group(3)}" if m else "",
                         "instrumento": bono[:200], "vno_ofertado_usd": _num(of.group(1)) / 1e6,
-                        "vno_adjudicado_usd": _num(ad.group(1)) / 1e6, "ve_adjudicado_ars": None, "url": url})
+                        "vno_adjudicado_usd": _num(ad.group(1)) / 1e6, "ve_adjudicado_ars": None, "url": url,
+                        "vencimiento": _vto(bono), "vno_circulacion_usd": None})
     return out
 
 
@@ -156,7 +169,7 @@ def _cache():
 
 def cargar() -> pd.DataFrame:
     if _cache().exists():
-        return pd.read_csv(_cache(), dtype={"fecha": str})
+        return pd.read_csv(_cache(), dtype={"fecha": str, "vencimiento": str}).reindex(columns=COLUMNAS)
     return pd.DataFrame(columns=COLUMNAS)
 
 
@@ -202,6 +215,34 @@ def fusionar(otro: str) -> pd.DataFrame:
     df = df.drop_duplicates(["fecha", "ticker", "instrumento"], keep="last").sort_values(["fecha", "ticker"])
     df[COLUMNAS].to_csv(_cache(), index=False)
     return df
+
+
+def flujo_neto(ventana: int = 30, df: pd.DataFrame | None = None) -> pd.DataFrame:
+    """Por día: lo adjudicado en dólar linked en los últimos `ventana` días,
+    lo que venció en esos días y la diferencia (financiamiento neto), más el
+    stock en circulación. Millones de USD. Cada instrumento se identifica por
+    su vencimiento; lo que vence es su último VNO en circulación conocido (o,
+    si el comunicado no lo trae, la suma de lo adjudicado)."""
+    df = cargar() if df is None else df
+    df = df[(df["tipo"].fillna("dl") == "dl") & df["vencimiento"].notna()].copy()
+    df["fecha"] = pd.to_datetime(df["fecha"])
+    df["vencimiento"] = pd.to_datetime(df["vencimiento"])
+    df = df.sort_values("fecha")
+    df["acum"] = df.groupby("vencimiento")["vno_adjudicado_usd"].cumsum()
+    df["stock"] = df["vno_circulacion_usd"].fillna(df["acum"])
+    hoy = pd.Timestamp.today().normalize()
+    dias = pd.date_range(df["fecha"].min(), max(hoy, df["fecha"].max()), freq="D")
+    adj = df.groupby("fecha")["vno_adjudicado_usd"].sum().reindex(dias, fill_value=0.0)
+    ult = df.groupby("vencimiento")["stock"].last()
+    venc = ult[ult.index <= dias[-1]].groupby(level=0).sum().reindex(dias, fill_value=0.0)
+    stock = pd.Series(0.0, index=dias)
+    for v, g in df.groupby("vencimiento"):
+        s = g.groupby("fecha")["stock"].last().reindex(dias).ffill().fillna(0.0)
+        stock += s.where(dias < v, 0.0)
+    w = f"{ventana}D"
+    out = pd.DataFrame({"adjudicado": adj.rolling(w).sum(), "vencido": venc.rolling(w).sum(), "stock": stock})
+    out["neto"] = out["adjudicado"] - out["vencido"]
+    return out
 
 
 def main() -> None:

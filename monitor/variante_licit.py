@@ -25,16 +25,21 @@ from . import build, config, indicators, licitaciones
 COMPONENTE = "licit_dl"
 
 
-def serie_diaria(ventana: int) -> pd.Series:
-    """Adjudicado dólar linked en los últimos `ventana` días corridos, por día."""
+def serie_diaria(ventana: int, medida: str = "bruto") -> pd.Series:
+    """Por día, en millones de USD: "bruto", lo adjudicado en dólar linked en
+    los últimos `ventana` días corridos; "neto", eso menos lo que venció en
+    esos días; "stock", cuánto cambió el stock en circulación en esos días."""
+    if medida != "bruto":
+        f = licitaciones.flujo_neto(ventana)
+        return f["neto"] if medida == "neto" else f["stock"].diff(ventana)
     g = licitaciones.por_licitacion()
     s = pd.Series(g["adjudicado_usd"].to_numpy(), index=pd.to_datetime(g["fecha"])).groupby(level=0).sum()
     dias = pd.date_range(s.index.min(), pd.Timestamp.today().normalize(), freq="D")
     return s.reindex(dias, fill_value=0.0).rolling(f"{ventana}D").sum()
 
 
-def preparar(ventana: int) -> None:
-    datos = config.DATA_DIR / f"licit_dl_{ventana}"
+def preparar(ventana: int, medida: str = "bruto") -> None:
+    datos = config.DATA_DIR / (f"licit_dl_{ventana}" if medida == "bruto" else f"licit_dl_{medida}_{ventana}")
     b = copy.deepcopy(config.IPD_BLOCKS)
     b["dolarizacion"]["components"][COMPONENTE] = {
         "transform": "desvio_12m", "sign": +1, "weight": 1.0,
@@ -47,7 +52,7 @@ def preparar(ventana: int) -> None:
     config.OUTPUT_JSON = datos / "monitor.json"
     datos.mkdir(parents=True, exist_ok=True)
 
-    serie = serie_diaria(ventana)
+    serie = serie_diaria(ventana, medida)
     original = indicators.derived_series
 
     def con_licitaciones(*args, **kwargs):
@@ -61,9 +66,11 @@ def preparar(ventana: int) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ventana", type=int, default=30, help="días corridos de licitaciones que se suman")
+    ap.add_argument("--medida", choices=["bruto", "neto", "stock"], default="bruto",
+                    help="adjudicado bruto, adjudicado menos vencimientos, o cambio del stock en circulación")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
-    preparar(a.ventana)
+    preparar(a.ventana, a.medida)
     build.run(offline=True)
 
 
