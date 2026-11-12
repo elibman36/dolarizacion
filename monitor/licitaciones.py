@@ -29,7 +29,6 @@ log = logging.getLogger(__name__)
 
 BASE = "https://www.argentina.gob.ar"
 NOTICIAS = BASE + "/economia/finanzas/noticias"
-CACHE = config.SERIES_DIR / "licitaciones_dl.csv"
 COLUMNAS = ["fecha", "tipo", "ticker", "instrumento", "vno_ofertado_usd", "vno_adjudicado_usd",
             "ve_adjudicado_ars", "url"]
 _UA = {"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/dolarizacion)"}
@@ -127,9 +126,13 @@ def parse(t: str, url: str = "") -> list[dict]:
     return out
 
 
+def _cache():
+    return config.SERIES_DIR / "licitaciones_dl.csv"
+
+
 def cargar() -> pd.DataFrame:
-    if CACHE.exists():
-        return pd.read_csv(CACHE, dtype={"fecha": str})
+    if _cache().exists():
+        return pd.read_csv(_cache(), dtype={"fecha": str})
     return pd.DataFrame(columns=COLUMNAS)
 
 
@@ -151,7 +154,7 @@ def actualizar(paginas: range = range(0, 3)) -> pd.DataFrame:
     nuevo = pd.concat([previo, pd.DataFrame(filas)], ignore_index=True)
     nuevo = nuevo.drop_duplicates(["fecha", "ticker", "instrumento"], keep="last").sort_values(["fecha", "ticker"])
     config.SERIES_DIR.mkdir(parents=True, exist_ok=True)
-    nuevo[COLUMNAS].to_csv(CACHE, index=False)
+    nuevo[COLUMNAS].to_csv(_cache(), index=False)
     log.info("licitaciones: %d instrumentos dólar linked nuevos", len(filas))
     return nuevo
 

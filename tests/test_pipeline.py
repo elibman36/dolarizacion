@@ -87,6 +87,8 @@ def fake_api(monkeypatch, tmp_path):
 
     monkeypatch.setattr(sources, "get_json", fake_get_json)
     monkeypatch.setattr(sources, "bcra_anexo_cambios", lambda: pd.DataFrame())
+    from monitor import licitaciones
+    monkeypatch.setattr(licitaciones, "actualizar", lambda *a, **k: pd.DataFrame())
     monkeypatch.setattr(sources, "bcra_compras_personas_humanas", lambda datos=None: pd.DataFrame({
         "fecha": ["2025-01", "2025-02"], "compras_usd_millones": [1500.0, 1800.0],
         "ventas_usd_millones": [300.0, 250.0], "fuente": ["test", "test"]}))
