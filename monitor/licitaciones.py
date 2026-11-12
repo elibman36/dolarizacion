@@ -109,9 +109,21 @@ def parse(t: str, url: str = "") -> list[dict]:
             if re.match(r"(LETRA|BONO|\(\*|[a-h]\))", L[k]):
                 break
             vals.append(L[k])
-        usd = [_num(x) for v in vals for x in re.findall(r"(?:USD|U\$S)\s*([\d\.]+(?:,\d+)?)", v)]
-        pes = [_num(x) for v in vals for x in re.findall(r"^\$\s*([\d\.]+(?:,\d+)?)\s*(?:\(\*+\))?$", v)]
-        if len(usd) < 2:
+        # Las columnas vienen siempre en el mismo orden: VNO ofrecido y
+        # adjudicado (millones de USD), valor efectivo adjudicado (millones
+        # de pesos), precio... El rótulo de moneda cambió según la época
+        # (USD, U$S, $ o nada), así que se toman por posición.
+        nums = [0.0 if re.fullmatch(r"Desiert[oa]", v, re.I) else _num(m.group(1)) for v in vals
+                for m in [re.fullmatch(r"(?:USD|U\$S|\$)?\s*([\d\.]+(?:,\d+)?)\s*(?:USD)?\s*(?:\((?:\*+|\d)\))?|Desiert[oa]", v, re.I)] if m]
+        if len(nums) < 3:
+            continue
+        usd, pes = nums[:2], nums[2:3]
+        if usd[1] == 0:  # desierta: no hay valor efectivo adjudicado
+            pes = [0.0]
+        # Control: el valor efectivo en pesos sobre el VNO en USD tiene que
+        # parecerse a un tipo de cambio; si no, el formato no es el esperado.
+        if usd[1] and pes[0] and not (10 < pes[0] / usd[1] < 5000):
+            log.warning("licitaciones: montos raros en %s (%s)", url or fecha, l[:60])
             continue
         par = " ".join(re.findall(r"\(([^)]*)\)", l))
         tk = re.search(r"\b(?!OPCI)([A-Z][A-Z0-9]{3,5})\b", par.replace("OPCION", ""))
@@ -123,6 +135,18 @@ def parse(t: str, url: str = "") -> list[dict]:
         out.append({"fecha": fecha, "tipo": tipo, "ticker": tk, "instrumento": l[:200],
                     "vno_ofertado_usd": usd[0], "vno_adjudicado_usd": usd[1],
                     "ve_adjudicado_ars": pes[0] if pes else None, "url": url})
+    if not out:
+        # Formato de 2020: un solo bono, con los totales en dólares (no en
+        # millones) en el texto.
+        txt = " || ".join(L)
+        of = re.search(r"Total VNO Ofertado en USD \|\| ([\d\.]+)", txt)
+        ad = re.search(r"Total VNO Adjudicado en USD \|\| ([\d\.]+)", txt)
+        bono = next((l for l in L if _DL.search(l) and re.match(r"BONO", l, re.I)), None)
+        if of and ad and bono:
+            m = re.search(r"VENCIMIENTO (\d{1,2}) DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})", bono.upper())
+            out.append({"fecha": fecha, "tipo": "dl", "ticker": f"vto {m.group(1)}-{m.group(2).lower()[:3]}-{m.group(3)}" if m else "",
+                        "instrumento": bono[:200], "vno_ofertado_usd": _num(of.group(1)) / 1e6,
+                        "vno_adjudicado_usd": _num(ad.group(1)) / 1e6, "ve_adjudicado_ars": None, "url": url})
     return out
 
 
