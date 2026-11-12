@@ -195,11 +195,24 @@ def por_licitacion(df: pd.DataFrame | None = None) -> pd.DataFrame:
     return g.reset_index()
 
 
+def fusionar(otro: str) -> pd.DataFrame:
+    """Une el CSV guardado con otra copia (p. ej. la que ya está en GitHub):
+    la serie sólo se agranda, así que ninguna de las dos pierde filas."""
+    df = pd.concat([pd.read_csv(otro, dtype={"fecha": str}), cargar()], ignore_index=True)
+    df = df.drop_duplicates(["fecha", "ticker", "instrumento"], keep="last").sort_values(["fecha", "ticker"])
+    df[COLUMNAS].to_csv(_cache(), index=False)
+    return df
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--todas", action="store_true", help="recorre todas las páginas de noticias")
+    ap.add_argument("--fusionar", metavar="CSV", help="sólo une el CSV guardado con esta otra copia")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    if a.fusionar:
+        print(f"{len(fusionar(a.fusionar))} instrumentos")
+        return
     df = actualizar(range(0, 110) if a.todas else range(0, 3))
     print(por_licitacion(df).tail(12).to_string(index=False))
 

@@ -56,5 +56,12 @@ jobs:
           else
             git commit -m "Monitor de dolarización: datos al $(date -u +%Y-%m-%d)"
             git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
+            # Las licitaciones se acumulan: si en el medio entró otra copia,
+            # se unen las dos en vez de quedarse con la de esta corrida.
+            if git show "origin/${GITHUB_REF_NAME}:data/series/licitaciones_dl.csv" > /tmp/lic_remoto.csv 2>/dev/null; then
+              python -m monitor.licitaciones --fusionar /tmp/lic_remoto.csv
+              git add data/series/licitaciones_dl.csv
+              git diff --cached --quiet || git commit --amend --no-edit
+            fi
             git push
           fi
