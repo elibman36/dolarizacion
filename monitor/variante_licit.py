@@ -20,7 +20,7 @@ import logging
 
 import pandas as pd
 
-from . import build, config, indicators, licitaciones
+from . import build, config, licitaciones
 
 COMPONENTE = "licit_dl"
 
@@ -29,6 +29,14 @@ def serie_diaria(ventana: int, medida: str = "bruto") -> pd.Series:
     """Por día, en millones de USD: "bruto", lo adjudicado en dólar linked en
     los últimos `ventana` días corridos; "neto", eso menos lo que venció en
     esos días; "stock", cuánto cambió el stock en circulación en esos días."""
+    if medida.startswith("duales"):
+        # El financiamiento neto publicado más los duales con dólar linked
+        # (bonos en moneda dual y duales TAMAR / dólar linked), con el peso
+        # que diga el sufijo ("duales50" = la mitad).
+        w = int(medida[6:] or 100) / 100
+        dl = licitaciones.flujo_neto(ventana)["neto"]
+        du = licitaciones.flujo_neto(ventana, tipo="dual", solo_efectivo=True)["neto"]
+        return dl.add(w * du.reindex(dl.index.union(du.index)), fill_value=0.0)
     if medida != "bruto":
         f = licitaciones.flujo_neto(ventana)
         return f["neto"] if medida == "neto" else f["stock"].diff(ventana)
@@ -53,20 +61,15 @@ def preparar(ventana: int, medida: str = "bruto") -> None:
     datos.mkdir(parents=True, exist_ok=True)
 
     serie = serie_diaria(ventana, medida)
-    original = indicators.derived_series
-
-    def con_licitaciones(*args, **kwargs):
-        out = original(*args, **kwargs)
-        out[COMPONENTE] = serie.reindex(out.index, method="ffill")
-        return out
-
-    build.indicators.derived_series = con_licitaciones
+    # El índice publicado ya arma este componente (build.licitaciones_neto):
+    # la variante reemplaza esa serie por la suya.
+    build.licitaciones_neto = lambda offline: serie
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ventana", type=int, default=30, help="días corridos de licitaciones que se suman")
-    ap.add_argument("--medida", choices=["bruto", "neto", "stock"], default="bruto",
+    ap.add_argument("--medida", choices=["bruto", "neto", "stock", "duales50", "duales100"], default="bruto",
                     help="adjudicado bruto, adjudicado menos vencimientos, o cambio del stock en circulación")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")

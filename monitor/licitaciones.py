@@ -35,6 +35,10 @@ _UA = {"User-Agent": "monitor-dolarizacion/1.0 (+https://github.com/elibman36/do
 _MESES = {m: i + 1 for i, m in enumerate(
     "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre".split())}
 _DL = re.compile(r"VINCULAD[AO]S? AL D[ÓO]LAR|D[ÓO]LAR LINKED|DOLLAR LINKED|LELINK", re.I)
+# Duales con cobertura cambiaria: los "bonos en moneda dual" (en USD) y los
+# duales TAMAR / dólar linked. Los duales en pesos (tasa fija / TAMAR, CER /
+# TAMAR) no tienen nada que ver con el dólar y quedan afuera.
+_DUAL_DL = re.compile(r"MONEDA DUAL|^BONO DUAL|DUAL[^()]*D[ÓO]LAR LINKED", re.I)
 _EXCLUIR = re.compile(r"conversi[oó]n|canje", re.I)
 
 
@@ -110,7 +114,7 @@ def parse(t: str, url: str = "") -> list[dict]:
             break
     out = []
     for i, l in enumerate(L):
-        if len(l) < 25 or not _DL.search(l) or not re.match(r"(LETRA|BONO|LELINK)", l, re.I):
+        if len(l) < 25 or not (_DL.search(l) or _DUAL_DL.search(l)) or not re.match(r"(LETRA|BONO|LELINK)", l, re.I):
             continue
         vals = []
         for k in range(i + 1, min(i + 16, len(L))):
@@ -139,7 +143,7 @@ def parse(t: str, url: str = "") -> list[dict]:
         if not tk:
             m = re.search(r"VENCIMIENTO (\d{1,2}) DE ([A-ZÁÉÍÓÚ]+) DE (\d{4})", l.upper())
             tk = f"vto {m.group(1)}-{m.group(2).lower()[:3]}-{m.group(3)}" if m else ""
-        tipo = "dual" if re.search(r"DUAL", l, re.I) else "dl"
+        tipo = "dual" if _DUAL_DL.search(l) else "dl"
         # La última columna es el VNO total en circulación después de la
         # licitación (millones de USD): el stock de ese instrumento.
         circ = nums[-1] if len(nums) >= 5 else None
@@ -217,19 +221,22 @@ def fusionar(otro: str) -> pd.DataFrame:
     return df
 
 
-def flujo_neto(ventana: int = 30, df: pd.DataFrame | None = None) -> pd.DataFrame:
+def flujo_neto(ventana: int = 30, df: pd.DataFrame | None = None, tipo: str = "dl",
+               solo_efectivo: bool = False) -> pd.DataFrame:
     """Por día: lo adjudicado en dólar linked en los últimos `ventana` días,
     lo que venció en esos días y la diferencia (financiamiento neto), más el
     stock en circulación. Millones de USD. Cada instrumento se identifica por
     su vencimiento; lo que vence es su último VNO en circulación conocido (o,
     si el comunicado no lo trae, la suma de lo adjudicado)."""
     df = cargar() if df is None else df
-    df = df[(df["tipo"].fillna("dl") == "dl") & df["vencimiento"].notna()].copy()
+    df = df[(df["tipo"].fillna("dl") == tipo) & df["vencimiento"].notna()].copy()
     df["fecha"] = pd.to_datetime(df["fecha"])
     df["vencimiento"] = pd.to_datetime(df["vencimiento"])
     df = df.sort_values("fecha")
     df["acum"] = df.groupby("vencimiento")["vno_adjudicado_usd"].cumsum()
-    df["stock"] = df["vno_circulacion_usd"].fillna(df["acum"])
+    # Con solo_efectivo, lo que vence es lo que se colocó por licitación en
+    # efectivo (sin lo que entró por canjes): entradas y salidas simétricas.
+    df["stock"] = df["acum"] if solo_efectivo else df["vno_circulacion_usd"].fillna(df["acum"])
     hoy = pd.Timestamp.today().normalize()
     dias = pd.date_range(df["fecha"].min(), max(hoy, df["fecha"].max()), freq="D")
     adj = df.groupby("fecha")["vno_adjudicado_usd"].sum().reindex(dias, fill_value=0.0)
