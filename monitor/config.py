@@ -281,7 +281,9 @@ IPD_BLOCKS = {
             # las licitaciones de los últimos LICIT_DL_VENTANA días menos lo
             # que venció en esos días (millones de USD), frente a su promedio
             # de 12 meses. Es cobertura cambiaria nueva que toma el mercado.
-            # Empieza en octubre de 2020.
+            # Suma los duales con dólar linked (bonos en moneda dual de 2023,
+            # duales TAMAR / dólar linked): de ésos, sólo lo licitado en
+            # efectivo, que sale a su vencimiento. Empieza en octubre de 2020.
             "licit_dl": {"transform": "desvio_12m", "sign": +1, "weight": 1.0,
                          "label": "Financiamiento neto en dólar linked",
                          "frases": ("el Tesoro colocó más dólar linked del que venció (más demanda de cobertura)",

@@ -247,7 +247,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     </div>
     <div class="card">
       <h2>Licitaciones del Tesoro: instrumentos dólar linked</h2>
-      <p class="note">Millones de USD de valor nominal, por licitación: lo que ofrecieron los inversores y lo que adjudicó el Tesoro. Es demanda de cobertura cambiaria que absorbe el Tesoro; al índice entra el financiamiento neto (lo adjudicado en 30 días menos lo que venció). No incluye bonos duales ni conversiones. Fuente: Secretaría de Finanzas.</p>
+      <p class="note">Millones de USD de valor nominal, por licitación: lo que ofrecieron los inversores y lo que adjudicó el Tesoro. Es demanda de cobertura cambiaria que absorbe el Tesoro. Al índice entra el financiamiento neto (lo adjudicado en 30 días menos lo que venció), sumando los bonos duales con dólar linked. No incluye conversiones. Fuente: Secretaría de Finanzas.</p>
       <div class="kv" id="dl-kv"></div>
       <div class="chart" id="c-dl" role="img" aria-label="Instrumentos dólar linked ofrecidos y adjudicados en las licitaciones del Tesoro"></div>
     </div>
@@ -799,6 +799,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
         formatter: (ps) => {
           const r = byF.get(ps[0].name);
           return `Licitación del ${ps[0].name}<br><b>Adjudicado: USD ${nf(r.adjudicado_usd, 0)} M</b><br>Ofrecido: USD ${nf(r.ofertado_usd, 0)} M` +
+            (r.duales_usd ? `<br>Duales con dólar linked: USD ${nf(r.duales_usd, 0)} M` : "") +
             (r.instrumentos ? `<br><span style="opacity:.75">${r.instrumentos}</span>` : "");
         },
       },
@@ -808,6 +809,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
       series: [
         { name: "Ofrecido", type: "bar", barMaxWidth: 14, barGap: "10%", data: lic.map((r) => r.ofertado_usd), itemStyle: { color: css("--s3"), borderRadius: [4, 4, 0, 0] } },
         { name: "Adjudicado", type: "bar", barMaxWidth: 14, data: lic.map((r) => r.adjudicado_usd), itemStyle: { color: css("--s1"), borderRadius: [4, 4, 0, 0] } },
+        { name: "Duales con dólar linked (adjudicado)", type: "bar", barMaxWidth: 14, data: lic.map((r) => r.duales_usd || null), itemStyle: { color: css("--s2"), borderRadius: [4, 4, 0, 0] } },
       ],
     });
   }

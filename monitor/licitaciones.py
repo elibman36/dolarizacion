@@ -205,11 +205,30 @@ def por_licitacion(df: pd.DataFrame | None = None) -> pd.DataFrame:
     df = cargar() if df is None else df
     if df.empty:
         return pd.DataFrame(columns=["fecha", "ofertado_usd", "adjudicado_usd", "instrumentos"])
-    df = df[df["tipo"].fillna("dl") == "dl"]
-    g = df.groupby("fecha").agg(ofertado_usd=("vno_ofertado_usd", "sum"),
-                                adjudicado_usd=("vno_adjudicado_usd", "sum"),
-                                instrumentos=("ticker", lambda s: ", ".join(x for x in s if isinstance(x, str) and x)))
+    tipo = df["tipo"].fillna("dl")
+    g = df[tipo == "dl"].groupby("fecha").agg(ofertado_usd=("vno_ofertado_usd", "sum"),
+                                              adjudicado_usd=("vno_adjudicado_usd", "sum"),
+                                              instrumentos=("ticker", lambda s: ", ".join(x for x in s if isinstance(x, str) and x)))
+    # Los duales con dólar linked, aparte: lo adjudicado por licitación.
+    du = df[tipo == "dual"].groupby("fecha")["vno_adjudicado_usd"].sum().rename("duales_usd")
+    g = g.join(du, how="outer")
+    g[["ofertado_usd", "adjudicado_usd", "duales_usd"]] = g[["ofertado_usd", "adjudicado_usd", "duales_usd"]].fillna(0.0)
+    g["instrumentos"] = g["instrumentos"].fillna("")
     return g.reset_index()
+
+
+def neto_total(ventana: int = 30, df: pd.DataFrame | None = None) -> pd.Series:
+    """Financiamiento neto del Tesoro en instrumentos con cobertura
+    cambiaria, por día (millones de USD): dólar linked (adjudicado menos lo
+    que vence de su stock) más duales con dólar linked (lo licitado en
+    efectivo menos esa misma parte cuando vence: casi todo su stock vino de
+    canjes, que no se cuentan)."""
+    df = cargar() if df is None else df
+    dl = flujo_neto(ventana, df)["neto"]
+    if (df["tipo"] == "dual").any():
+        du = flujo_neto(ventana, df, tipo="dual", solo_efectivo=True)["neto"]
+        dl = dl.add(du, fill_value=0.0)
+    return dl
 
 
 def fusionar(otro: str) -> pd.DataFrame:

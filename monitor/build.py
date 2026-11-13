@@ -180,7 +180,7 @@ def licitaciones_neto(offline: bool) -> pd.Series:
         except Exception as exc:  # noqa: BLE001
             log.warning("Licitaciones del Tesoro no disponibles (%s); uso copia guardada", exc)
     try:
-        return licitaciones.flujo_neto(config.LICIT_DL_VENTANA)["neto"]
+        return licitaciones.neto_total(config.LICIT_DL_VENTANA)
     except Exception as exc:  # noqa: BLE001
         log.warning("Licitaciones del Tesoro: sin datos para el financiamiento neto (%s)", exc)
         return pd.Series(dtype=float)
@@ -191,7 +191,7 @@ def load_licitaciones_dl(offline: bool) -> list[dict]:
     gráfico del tablero. La descarga la hace licitaciones_neto."""
     g = licitaciones.por_licitacion()
     return [{"fecha": r["fecha"], "ofertado_usd": _clean(r["ofertado_usd"]), "adjudicado_usd": _clean(r["adjudicado_usd"]),
-             "instrumentos": r["instrumentos"]} for r in g.to_dict("records")]
+             "duales_usd": _clean(r["duales_usd"]), "instrumentos": r["instrumentos"]} for r in g.to_dict("records")]
 
 
 POSICION_BCRA_CACHE = "posicion_futuros_bcra"
@@ -346,7 +346,7 @@ SERIES_META = {
     "riesgo_pais": ("Riesgo país", "pb", "ArgentinaDatos (JP Morgan EMBI)"),
     "reservas": ("Reservas internacionales brutas", "millones de USD", "BCRA"),
     "tasa": ("Tasa BADLAR bancos privados", "% n.a.", "BCRA"),
-    "licit_dl": ("Financiamiento neto en dólar linked (adjudicado menos vencimientos, 30 días)", "millones de USD",
+    "licit_dl": ("Financiamiento neto en dólar linked y duales (adjudicado menos vencimientos, 30 días)", "millones de USD",
                  "Secretaría de Finanzas"),
     "depositos_usd": ("Depósitos en dólares", "millones de USD", "BCRA"),
     "deval_implicita": ("Devaluación implícita en futuros a 90 días", "% TNA", "A3 Mercados"),

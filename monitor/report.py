@@ -832,7 +832,7 @@ APENDICE_AR = {
     "compras_ph": ("Compras netas de dólares de personas humanas en el mes (FAE, balance cambiario del BCRA), comparadas con su promedio de 12 meses. Entra un mes después, cuando el BCRA la publica.",
                    "Las personas compraron más dólares que el mes anterior.",
                    "Las personas compraron menos dólares que el mes anterior."),
-    "licit_dl": ("Financiamiento neto del Tesoro en dólar linked: lo adjudicado en las licitaciones de los últimos 30 días menos lo que venció, en millones de USD, comparado con su promedio de 12 meses (Secretaría de Finanzas).",
+    "licit_dl": ("Financiamiento neto del Tesoro en dólar linked y en bonos duales con dólar linked: lo adjudicado en las licitaciones de los últimos 30 días menos lo que venció, en millones de USD, comparado con su promedio de 12 meses (Secretaría de Finanzas).",
                  "El Tesoro colocó más dólar linked del que venció: el mercado sumó cobertura cambiaria.",
                  "Venció más dólar linked del que se renovó: el mercado desarmó cobertura."),
     "canje": ("Diferencia entre el dólar CCL y el MEP, comparada con los dos años anteriores.",
