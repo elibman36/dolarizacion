@@ -1,13 +1,12 @@
 # Dolarómetro (Argentina)
 
-Tablero diario para seguir la presión cambiaria y la dolarización de
-portafolios en Argentina, pensado para hacer incidencia en el ciclo electoral
-2027. Su eje es el **Índice de Dolarización (ID)**, una adaptación
-del *Exchange Market Pressure Index* a la economía bimonetaria argentina.
-El tablero y el reporte cubren sólo Argentina. Los módulos de Perú,
-Uruguay, Brasil, Chile, Colombia y el núcleo comparable siguen en el código
-(`monitor/peru.py`, etc.; el monitor financiero usa algunas de sus piezas),
-pero ya no se corren en el workflow diario ni se muestran.
+Tablero diario de Fundar para seguir la presión cambiaria y la dolarización
+de portafolios en Argentina. Su eje es el **Índice de Dolarización (ID)**, una
+adaptación del *Exchange Market Pressure Index* a la economía bimonetaria
+argentina. Cada semana, las claves de la semana salen también por mail.
+Los módulos de Perú, Uruguay, Brasil, Chile, Colombia y el núcleo comparable
+siguen en el código (el monitor de dolarización financiera usa algunas de sus
+piezas), pero no se muestran en el tablero.
 
 ```
 .
@@ -19,7 +18,12 @@ pero ya no se corren en el workflow diario ni se muestran.
 │   ├── build.py            ← orquestador de Argentina: python -m monitor.build
 │   ├── peru.py … colombia.py, comparado.py ← otros países (sin uso en el tablero)
 │   ├── comun.py            ← piezas comunes a los países
-│   └── report.py           ← reporte semanal: python -m monitor.report
+│   ├── licitaciones.py     ← licitaciones dólar linked del Tesoro
+│   ├── claves.py           ← claves de la semana (automáticas o escritas a mano)
+│   ├── enviar.py           ← mail semanal: python -m monitor.enviar
+│   ├── artefacto.py        ← versión del tablero para claude.ai
+│   ├── prom5.py, dia.py    ← versiones paralelas (promedio de 5 días, dato del día)
+│   └── report.py           ← textos de la metodología y del racconto (el PDF ya no se envía)
 ├── data/
 │   ├── monitor.json        ← lo que consume el tablero (generado)
 │   ├── panel_diario.csv    ← panel diario completo, para Excel/R/Stata (generado)
@@ -27,6 +31,9 @@ pero ya no se corren en el workflow diario ni se muestran.
 │   ├── series/*.csv        ← historia cruda de cada serie (generado)
 │   ├── pe/ uy/ br/ cl/ co/ ← datos históricos de otros países (ya no se actualizan)
 │   └── comparado.json      ← núcleo comparable (ya no se actualiza)
+├── reportes/
+│   ├── claves/             ← claves y bajada de cada semana (AAAA-MM-DD.md, opcional)
+│   └── textos/             ← texto «La semana» (AAAA-MM-DD.md, opcional)
 └── tests/
 ```
 
@@ -56,54 +63,26 @@ python -m monitor.build --offline   # recalcula con lo ya guardado
 python -m http.server               # y abrir http://localhost:8000
 ```
 
-## Reporte semanal en PDF
+## Claves de la semana y mail semanal
 
-Todos los sábados a las 10:17 (hora argentina), con el cierre del viernes ya
-descargado, el workflow `.github/workflows/reporte-semanal.yml` actualiza los
-datos y genera un PDF con la semana hábil que terminó (lunes a viernes), así
-queda listo antes del lunes aunque GitHub demore la corrida:
+El tablero abre con las claves de la última semana cerrada (de lunes a
+viernes, contra el viernes anterior): quedan fijas hasta el viernes
+siguiente aunque el resto del tablero cambie todos los días. Por defecto se
+escriben solas con los datos. Para escribirlas a mano, crear
+`reportes/claves/AAAA-MM-DD.md` con la fecha del viernes (ver
+`reportes/claves/PLANTILLA.md`): los párrafos sin negrita del principio son la
+bajada del mail y cada párrafo que empieza en negrita es una clave. El texto
+«La semana», si lo hay, va en `reportes/textos/AAAA-MM-DD.md`.
 
-1. el índice al cierre de la semana y un resumen: qué lo subió y qué lo bajó,
-   en orden de importancia, y cómo se reparte el cambio entre los subíndices;
-2. la tabla de componentes (dato, peso, y variación y puntos del índice en la
-   semana y en 4 semanas), los gráficos del índice y los subíndices (18 meses),
-   los de los últimos seis meses y las compras de USD de personas humanas;
-3. la metodología.
-
-Queda en `reportes/reporte-semanal-AAAA-MM-DD.pdf` (fecha del viernes) y en
-`reportes/ultimo.pdf`, y también como artefacto de la corrida en *Actions*.
-Para regenerar una semana: *Actions → Reporte semanal (PDF) → Run workflow*
-con la fecha del lunes siguiente. Localmente:
-
-```bash
-pip install -r requirements-reporte.txt && python -m playwright install chromium
-python -m monitor.report --fecha 2026-10-05   # semana del 28/9 al 2/10
-```
-
-### Racconto de la semana
-
-El reporte tiene una sección «La semana» con un texto escrito a mano. Va en
-`reportes/textos/AAAA-MM-DD.md`, con la fecha del viernes de la semana
-informada (por ejemplo `2026-10-30.md` para la semana del 26 al 30 de
-octubre); `reportes/textos/PLANTILLA.md` explica el formato (párrafos,
-**negrita**, *cursiva*, listas con «- » y subtítulos con «## »). Desde la web
-de GitHub: *Add file → Create new file* en `reportes/textos/`. Si no hay
-archivo para esa semana, la sección no aparece. Como el reporte se arma el
-sábado a las 10:17, conviene escribirlo antes; si se escribe o corrige
-después, hay que volver a generar el reporte (*Run workflow*).
-
-### Envío por email
-
-Después de generar el PDF, el workflow del sábado lo manda por mail
-(`monitor/enviar.py`): adjunto, con el índice al cierre y el racconto en el
-cuerpo, y los destinatarios en copia oculta. Necesita tres secretos del
-repositorio (*Settings → Secrets and variables → Actions*): `SMTP_USER` (la
-cuenta que envía), `SMTP_PASSWORD` (una contraseña de aplicación de Google de
-esa cuenta) y `REPORTE_PARA` (destinatarios separados por coma). Sin esos
-secretos el paso se saltea. Para probar o reenviar sin regenerar el reporte:
-*Actions → Enviar reporte por email → Run workflow* (se puede poner otra lista
-de destinatarios). Localmente, `python -m monitor.enviar --dry-run` arma el
-mail sin enviarlo.
+El mail (`monitor/enviar.py`) sale de `data/monitor.json`: el índice y los
+tres subíndices al cierre del viernes, las claves, el texto de la semana, un
+gráfico del último año y un enlace al tablero, sin adjuntos y con los
+destinatarios en copia oculta. Necesita tres secretos del repositorio
+(*Settings → Secrets and variables → Actions*): `SMTP_USER`, `SMTP_PASSWORD`
+(contraseña de aplicación de Google) y `REPORTE_PARA`. Para mandarlo:
+*Actions → Enviar las claves por email → Run workflow* (se puede poner otra
+lista de destinatarios). Localmente, `python -m monitor.enviar --dry-run`
+arma el mail sin enviarlo.
 
 ## Variables y fuentes
 
@@ -181,7 +160,7 @@ El cálculo sigue estos pasos:
    mueve junto con el resto). Las cargas negativas valen cero, para no invertir
    el sentido económico de ninguna variable, y ningún componente pesa menos del
    10% de su bloque (`IPD_PCA_PESO_MINIMO`). Los pesos se recalculan en cada
-   corrida y se publican en `monitor.json`, el tablero y el reporte
+   corrida y se publican en `monitor.json` y el tablero
    (`IPD_PONDERACION = "fija"` vuelve a los pesos manuales). Si falta un
    componente, su peso se reparte entre los demás; el índice sólo se publica si
    está disponible al menos el 40% del peso.

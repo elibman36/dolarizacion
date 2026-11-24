@@ -362,9 +362,9 @@ IPD_PERCENTILE_WINDOW = 504
 # unos 18 puntos, contra 6 con 20 días, oct-2026).
 INDICE_SUAVIZADO = 20
 
-# Tasa del componente "tasa": la BADLAR en el índice publicado. Las versiones
-# paralelas (monitor.tasas) pueden usar otra serie de BCRA_VARIABLES, p. ej.
-# "pases_1d", promediada en TASA_SUAVIZADO_DIAS días hábiles.
+# Tasa del componente "tasa": la BADLAR en el índice publicado. Se puede usar
+# otra serie de BCRA_VARIABLES (p. ej. "pases_1d", la caución), promediada en
+# TASA_SUAVIZADO_DIAS días hábiles; se probó en nov-2026 y quedó la BADLAR.
 TASA_FUENTE = "badlar"
 # Días corridos de licitaciones dólar linked que suma el componente licit_dl.
 LICIT_DL_VENTANA = 30

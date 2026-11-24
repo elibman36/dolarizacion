@@ -1,18 +1,16 @@
 __pycache__/
 .pytest_cache/
-reportes/ultimo.html
-reportes/*/ultimo.html
-reportes/ultimo.eml
 
-# Versión alternativa (flujos acumulados): se regenera con python -m monitor.alternativo
-data/alternativo/
-reportes/alternativo/ultimo.*
+# Reportes y mails armados localmente (el PDF ya no se publica).
+reportes/*.pdf
+reportes/*.html
+reportes/*.eml
+reportes/*/
+
+# Las claves y los textos de la semana sí se versionan.
+!reportes/claves/
+!reportes/textos/
+
+# Versiones paralelas: se regeneran cuando se publican.
 data/prom5/
-reportes/prom5/ultimo.*
-data/cero/
-reportes/cero/ultimo.*
-data/mixto*/
-reportes/mixto*/ultimo.*
-data/tasa_*/
-reportes/tasa_*/ultimo.*
-data/licit_dl_*/
+data/dia/
