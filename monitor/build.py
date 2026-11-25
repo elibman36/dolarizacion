@@ -613,7 +613,7 @@ def run(offline: bool = False) -> dict:
     # días hábiles), el calendario es el suyo. Otras series (riesgo país,
     # reservas) traen dato en feriados locales y los colaban como días hábiles.
     a3500 = daily.get("tc_a3500")
-    if a3500 is not None and not a3500.dropna().empty:
+    if getattr(config, "CALENDARIO_BCRA", True) and a3500 is not None and not a3500.dropna().empty:
         cal = a3500.dropna().index
         index = index[(index < cal.min()) | (index > cal.max()) | index.isin(cal)]
     panel = indicators.align(daily, index)
