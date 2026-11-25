@@ -790,3 +790,13 @@ def test_limpiar_y_combinar_fuentes():
     assert list(s.index.strftime("%m-%d")) == ["11-19", "11-20"] and s["2026-11-20"] == 101.0
     s2 = build.combinar_fuentes("riesgo_pais", amb, ad, cal)
     assert "2026-11-24" in s2.index.strftime("%Y-%m-%d")  # en el riesgo país se puede repetir
+
+
+def test_correr_atraso_del_ccl():
+    from monitor import build
+    cal = pd.to_datetime(["2020-03-16", "2020-03-17", "2020-03-18", "2020-03-19", "2020-03-20", "2020-03-23"])
+    s = pd.Series([1.0, 2.0, 3.0, 4.0, 5.0], index=cal[1:])
+    out = build.correr_atraso(s, cal, pd.Timestamp("2020-03-19"))
+    assert out.to_dict() == {pd.Timestamp("2020-03-16"): 1.0, pd.Timestamp("2020-03-17"): 2.0,
+                             pd.Timestamp("2020-03-18"): 3.0, pd.Timestamp("2020-03-20"): 4.0,
+                             pd.Timestamp("2020-03-23"): 5.0}

@@ -324,7 +324,21 @@ def combinar_fuentes(key: str, amb: pd.Series | None, ad: pd.Series | None, cale
     ad = sources.limpiar_diaria(ad if ad is not None else pd.Series(dtype=float), calendario, rep)
     if ambito_ok and not amb.empty:
         ad = ad[ad.index <= amb.index.max()]
-    return amb.combine_first(ad).rename(key)
+    out = amb.combine_first(ad).rename(key)
+    if key == "usd_ccl" and calendario is not None and len(calendario):
+        out = correr_atraso(out, calendario, pd.Timestamp(config.CCL_ATRASO_HASTA))
+    return out
+
+
+def correr_atraso(s: pd.Series, calendario, hasta: pd.Timestamp) -> pd.Series:
+    """Pasa cada dato hasta `hasta` al día hábil anterior del calendario."""
+    viejo = s[s.index <= hasta]
+    cal = pd.DatetimeIndex(calendario).sort_values()
+    pos = cal.searchsorted(viejo.index) - 1
+    ok = pos >= 0
+    corrido = pd.Series(viejo.to_numpy()[ok], index=cal[pos[ok]])
+    corrido = corrido[~corrido.index.duplicated(keep="last")]
+    return pd.concat([corrido, s[s.index > hasta]]).sort_index().rename(s.name)
 
 
 def fetch_all(offline: bool) -> tuple[dict[str, pd.Series], dict[str, str]]:
@@ -595,6 +609,13 @@ def run(offline: bool = False) -> dict:
     if not daily:
         raise SystemExit("No hay ninguna serie disponible (ni descargada ni guardada).")
     index = indicators.business_days(daily)
+    # Feriados afuera: hasta donde llega el A3500 del BCRA (sólo se publica en
+    # días hábiles), el calendario es el suyo. Otras series (riesgo país,
+    # reservas) traen dato en feriados locales y los colaban como días hábiles.
+    a3500 = daily.get("tc_a3500")
+    if a3500 is not None and not a3500.dropna().empty:
+        cal = a3500.dropna().index
+        index = index[(index < cal.min()) | (index > cal.max()) | index.isin(cal)]
     panel = indicators.align(daily, index)
 
     futuros = load_futures(offline)

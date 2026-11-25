@@ -299,7 +299,7 @@ def parse_compras_personas_humanas(datos: pd.DataFrame) -> pd.DataFrame:
     d = datos.copy()
     d.columns = [str(c).strip() for c in d.columns]
     d = d[d["Sector"].astype(str).str.strip().str.casefold() == config.BCRA_ANEXO_SECTOR.casefold()]
-    d = d[d["B"].astype(str).str.contains(r"compra-venta de billetes y divisas", case=False, regex=True)]
+    d = d[d["B"].astype(str).str.contains(r"compra-venta de billetes", case=False, regex=True)]
     d["Monto"] = pd.to_numeric(d["Monto"], errors="coerce")
     d["fecha"] = pd.to_datetime(d["Mes"]).dt.strftime("%Y-%m")
     compras = d[d["C"].astype(str).str.contains(r"^\s*02- compra", case=False, regex=True)]

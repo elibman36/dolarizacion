@@ -147,6 +147,11 @@ AMBITO_SERIES = {
 # Series de precios con decimales: un valor idéntico al del día hábil anterior
 # es una fuente trabada, no un precio, y cuenta como sin dato.
 SERIES_SIN_REPETIDOS = ("usd_mep", "usd_ccl")
+# Hasta el 19/3/2020 el CCL histórico (el mismo en Ámbito y en ArgentinaDatos)
+# está fechado con un día de atraso: sus variaciones siguen a las del oficial,
+# el MEP y el blue del día hábil anterior (correlación 0,7-0,9 contra 0,1-0,2
+# el mismo día en 2017-2019). Se corre al día hábil anterior.
+CCL_ATRASO_HASTA = "2020-03-19"
 
 # ---------------------------------------------------------------------------
 # Futuros de dólar (A3 Mercados) y anexo cambiario del BCRA
