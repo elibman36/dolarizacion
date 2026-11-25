@@ -133,6 +133,21 @@ ARGENTINADATOS_DOLARES = {
 }
 ARGENTINADATOS_RIESGO_PAIS = {"label": "Riesgo país (EMBI Argentina)", "unit": "pb"}
 
+# Ámbito Financiero (mercados.ambito.com): fuente principal del MEP, el CCL, el
+# blue y el riesgo país desde nov-2026. Fecha cada dato por la rueda en que se
+# operó (ArgentinaDatos a veces lo fecha el día siguiente) y tiene menos días
+# trabados. ArgentinaDatos queda de respaldo para los días que Ámbito no trae
+# (por ejemplo, el MEP antes de 2020).
+AMBITO_SERIES = {
+    "usd_mep": {"ruta": "dolarrava/mep", "desde": "2020-01-01"},
+    "usd_ccl": {"ruta": "dolarrava/cl", "desde": "2013-01-01"},
+    "usd_blue": {"ruta": "dolar/informal", "desde": "2011-01-01"},
+    "riesgo_pais": {"ruta": "riesgopais", "desde": "1999-01-01"},
+}
+# Series de precios con decimales: un valor idéntico al del día hábil anterior
+# es una fuente trabada, no un precio, y cuenta como sin dato.
+SERIES_SIN_REPETIDOS = ("usd_mep", "usd_ccl")
+
 # ---------------------------------------------------------------------------
 # Futuros de dólar (A3 Mercados) y anexo cambiario del BCRA
 # ---------------------------------------------------------------------------

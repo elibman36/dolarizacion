@@ -1,4 +1,8 @@
 {
+ "ambito_riesgo_pais": "1999-01-01",
+ "ambito_usd_blue": "2011-01-01",
+ "ambito_usd_ccl": "2013-01-01",
+ "ambito_usd_mep": "2020-01-01",
  "badlar": "1996-01-01",
  "baibar": "1996-01-01",
  "cer": "1996-01-01",

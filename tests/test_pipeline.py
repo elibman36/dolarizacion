@@ -86,6 +86,8 @@ def fake_api(monkeypatch, tmp_path):
         raise AssertionError(f"URL inesperada: {url}")
 
     monkeypatch.setattr(sources, "get_json", fake_get_json)
+    # Ámbito no responde en las pruebas: queda ArgentinaDatos (sintético).
+    monkeypatch.setattr(sources, "ambito_historico", lambda ruta, name, desde: pd.Series(dtype=float, name=name))
     monkeypatch.setattr(sources, "bcra_anexo_cambios", lambda: pd.DataFrame())
     from monitor import licitaciones
     monkeypatch.setattr(licitaciones, "actualizar", lambda *a, **k: pd.DataFrame())
@@ -774,3 +776,17 @@ def test_flujo_acumulado_suma_con_su_signo_y_se_borra():
     # vuelve a cero de golpe.
     assert z.iloc[919] < z.iloc[924] < z.iloc[929] < 0
     assert (acum["noticia"].iloc[920:] == 0).all()
+
+
+def test_limpiar_y_combinar_fuentes():
+    from monitor import build
+    idx = pd.to_datetime(["2026-11-19", "2026-11-20", "2026-11-21", "2026-11-23", "2026-11-24", "2026-11-25"])
+    cal = pd.to_datetime(["2026-11-19", "2026-11-20", "2026-11-24"])  # 23 feriado, 21 sábado
+    amb = pd.Series([100.0, 101.0, 101.0, 101.0, 101.0, None], index=idx).dropna()
+    ad = pd.Series([99.0, 99.0, 104.0, 104.0, 104.0, 105.0], index=idx)
+    s = build.combinar_fuentes("usd_ccl", amb, ad, cal)
+    # Sin sábado ni feriado; el 24 repite el valor del 20 (trabado) y queda sin
+    # dato; ArgentinaDatos no agrega el 25, posterior al último dato de Ámbito.
+    assert list(s.index.strftime("%m-%d")) == ["11-19", "11-20"] and s["2026-11-20"] == 101.0
+    s2 = build.combinar_fuentes("riesgo_pais", amb, ad, cal)
+    assert "2026-11-24" in s2.index.strftime("%Y-%m-%d")  # en el riesgo país se puede repetir

@@ -13,7 +13,7 @@ piezas), pero no se muestran en el tablero.
 ├── index.html              ← tablero (estático, lee data/monitor.json)
 ├── monitor/
 │   ├── config.py           ← fuentes, componentes, pesos, umbrales, eventos
-│   ├── sources.py          ← descarga (BCRA, ArgentinaDatos, A3 Mercados)
+│   ├── sources.py          ← descarga (BCRA, Ámbito, ArgentinaDatos, A3 Mercados)
 │   ├── indicators.py       ← series derivadas e ID
 │   ├── build.py            ← orquestador de Argentina: python -m monitor.build
 │   ├── peru.py … colombia.py, comparado.py ← otros países (sin uso en el tablero)
@@ -86,6 +86,12 @@ arma el mail sin enviarlo.
 
 ## Variables y fuentes
 
+El MEP, el CCL, el blue y el riesgo país salen de Ámbito, que fecha cada dato
+por la rueda en que se operó; ArgentinaDatos completa los días que Ámbito no
+trae. Las series quedan en días hábiles (calendario del A3500 del BCRA) y, en
+el MEP y el CCL, un valor idéntico al del día anterior cuenta como sin dato
+(fuente trabada).
+
 | Variable | Desde | Frecuencia | Fuente | Carga |
 |---|---|---|---|---|
 | Reservas internacionales brutas | 1996 | diaria | BCRA, API de Estadísticas v4 | automática |
@@ -93,10 +99,11 @@ arma el mail sin enviarlo.
 | Tipo de cambio mayorista A3500 | 2002 | diaria | BCRA | automática |
 | CER (para descontar la inflación) | 2002 | diaria | BCRA | automática |
 | Depósitos en dólares del sector privado | 2002 | diaria | BCRA | automática |
-| Riesgo país (EMBI) | 1999 | diaria | [ArgentinaDatos](https://argentinadatos.com) | automática |
-| Dólar oficial, mayorista y blue | 2011 | diaria | ArgentinaDatos | automática |
-| Dólar CCL | 2013 | diaria | ArgentinaDatos | automática |
-| Dólar MEP | 2018 | diaria | ArgentinaDatos | automática |
+| Riesgo país (EMBI) | 1999 | diaria | Ámbito (respaldo: [ArgentinaDatos](https://argentinadatos.com)) | automática |
+| Dólar oficial y mayorista | 2011 | diaria | ArgentinaDatos | automática |
+| Dólar blue | 2011 | diaria | Ámbito (respaldo: ArgentinaDatos) | automática |
+| Dólar CCL | 2013 | diaria | Ámbito (respaldo: ArgentinaDatos) | automática |
+| Dólar MEP | 2018 | diaria | Ámbito desde 2020 (antes, ArgentinaDatos) | automática |
 | Brechas CCL, MEP y blue | 2011 | diaria | cálculo propio (CCL; antes de 2013, blue) | derivada |
 | Futuros de dólar: devaluación implícita e interés abierto | 2020 | diaria | A3 Mercados (API pública de precios de cierre) | automática |
 | Posición del BCRA en futuros de dólar (ítem IV.1.b) | 2003 | mensual (fin de mes) | BCRA, Planilla de Reservas Internacionales y Liquidez en Moneda Extranjera (PDF, formato FMI) | automática |

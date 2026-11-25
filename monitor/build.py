@@ -313,6 +313,20 @@ def load_posicion_bcra(offline: bool) -> pd.DataFrame:
     return cached
 
 
+def combinar_fuentes(key: str, amb: pd.Series | None, ad: pd.Series | None, calendario,
+                     ambito_ok: bool = True) -> pd.Series:
+    """Ámbito primero y ArgentinaDatos para los días que le faltan, en días
+    hábiles y (en el MEP y el CCL) sin valores trabados. Si Ámbito respondió,
+    ArgentinaDatos no agrega días posteriores a su último dato: los fecha a
+    veces con el día siguiente o con precios de mitad de rueda."""
+    rep = key in config.SERIES_SIN_REPETIDOS
+    amb = sources.limpiar_diaria(amb if amb is not None else pd.Series(dtype=float), calendario, rep)
+    ad = sources.limpiar_diaria(ad if ad is not None else pd.Series(dtype=float), calendario, rep)
+    if ambito_ok and not amb.empty:
+        ad = ad[ad.index <= amb.index.max()]
+    return amb.combine_first(ad).rename(key)
+
+
 def fetch_all(offline: bool) -> tuple[dict[str, pd.Series], dict[str, str]]:
     series: dict[str, pd.Series] = {}
     status: dict[str, str] = {}
@@ -322,6 +336,12 @@ def fetch_all(offline: bool) -> tuple[dict[str, pd.Series], dict[str, str]]:
         for key in keys:
             series[key] = load_cached(key)
             status[key] = "offline"
+        cal = series.get("tc_a3500")
+        cal = cal.dropna().index if cal is not None else None
+        for key in config.AMBITO_SERIES:
+            amb, ad = load_cached(f"ambito_{key}"), load_cached(f"argdatos_{key}")
+            if not amb.empty or not ad.empty:
+                series[key] = combinar_fuentes(key, amb, ad, cal)
         return series, status
 
     # BCRA
@@ -346,14 +366,36 @@ def fetch_all(offline: bool) -> tuple[dict[str, pd.Series], dict[str, str]]:
         else:
             series[key], status[key] = load_cached(key), "error: API del BCRA no disponible"
 
-    # ArgentinaDatos
+    # ArgentinaDatos (respaldo de Ámbito para el MEP, el CCL, el blue y el
+    # riesgo país; única fuente del oficial minorista y el mayorista).
+    ad: dict[str, pd.Series] = {}
     for key, spec in config.ARGENTINADATOS_DOLARES.items():
-        series[key], status[key] = refresh(
-            key, lambda k=key, c=spec["casa"]: sources.argentinadatos_dolar(c, k)
-        )
-    series["riesgo_pais"], status["riesgo_pais"] = refresh(
-        "riesgo_pais", sources.argentinadatos_riesgo_pais
-    )
+        cache = f"argdatos_{key}" if key in config.AMBITO_SERIES else key
+        ad[key], status[key] = refresh(cache, lambda k=key, c=spec["casa"]: sources.argentinadatos_dolar(c, k))
+    ad["riesgo_pais"], status["riesgo_pais"] = refresh("argdatos_riesgo_pais", sources.argentinadatos_riesgo_pais)
+    for key, s in ad.items():
+        if key not in config.AMBITO_SERIES:
+            series[key] = s
+
+    # Ámbito, fuente principal. Cada serie queda en días hábiles (calendario
+    # del A3500 del BCRA) y, en el MEP y el CCL, sin valores trabados.
+    calendario = series.get("tc_a3500")
+    calendario = calendario.dropna().index if calendario is not None else None
+    for key, spec in config.AMBITO_SERIES.items():
+        cache = f"ambito_{key}"
+        desde = incremental_start(cache, spec["desde"])
+        amb, st = refresh(cache, lambda r=spec["ruta"], k=key, d=desde: sources.ambito_historico(r, k, d))
+        if st == "ok":
+            mark_downloaded(cache, spec["desde"])
+        combinada = combinar_fuentes(key, amb, ad.get(key), calendario, ambito_ok=(st == "ok"))
+        save_series(key, combinada)
+        series[key] = combinada
+        if st == "ok":
+            status[key] = "ok"
+        elif status.get(key) == "ok":
+            status[key] = "ok (sólo ArgentinaDatos; Ámbito no respondió)"
+        else:
+            status[key] = f"error: Ámbito ({st}) y ArgentinaDatos ({status.get(key)})"
     return series, status
 
 
@@ -365,15 +407,15 @@ SERIES_META = {
     "ipd": ("Índice de Dolarización", "desvíos estándar", "ID"),
     "tc_oficial_ref": ("Tipo de cambio oficial mayorista (A3500)", "$ por USD", "BCRA"),
     "cer": ("CER (sigue a la inflación)", "índice", "BCRA"),
-    "usd_ccl": ("Dólar contado con liquidación", "$ por USD", "ArgentinaDatos"),
-    "usd_mep": ("Dólar MEP", "$ por USD", "ArgentinaDatos"),
-    "usd_blue": ("Dólar blue", "$ por USD", "ArgentinaDatos"),
+    "usd_ccl": ("Dólar contado con liquidación", "$ por USD", "Ámbito (respaldo: ArgentinaDatos)"),
+    "usd_mep": ("Dólar MEP", "$ por USD", "Ámbito (respaldo: ArgentinaDatos)"),
+    "usd_blue": ("Dólar blue", "$ por USD", "Ámbito (respaldo: ArgentinaDatos)"),
     "brecha_ccl": ("Brecha CCL / oficial", "%", "Cálculo propio"),
     "brecha_mep": ("Brecha MEP / oficial", "%", "Cálculo propio"),
     "canje": ("Canje (CCL / MEP)", "%", "Cálculo propio"),
     "vol_oficial": ("Volatilidad del oficial (20 días, anualizada)", "%", "Cálculo propio"),
     "vol_ccl": ("Volatilidad del CCL (20 días, anualizada)", "%", "Cálculo propio"),
-    "riesgo_pais": ("Riesgo país", "pb", "ArgentinaDatos (JP Morgan EMBI)"),
+    "riesgo_pais": ("Riesgo país", "pb", "Ámbito (JP Morgan EMBI; respaldo: ArgentinaDatos)"),
     "reservas": ("Reservas internacionales brutas", "millones de USD", "BCRA"),
     "tasa": ("Tasa BADLAR bancos privados", "% n.a.", "BCRA"),
     "licit_dl": ("Financiamiento neto en dólar linked y duales (adjudicado menos vencimientos, 30 días)", "millones de USD",

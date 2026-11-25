@@ -168,6 +168,66 @@ def argentinadatos_riesgo_pais(name: str = "riesgo_pais") -> pd.Series:
 
 
 # ---------------------------------------------------------------------------
+# Ámbito Financiero - cotizaciones y riesgo país
+# ---------------------------------------------------------------------------
+
+AMBITO_BASE = "https://mercados.ambito.com/"
+
+
+def _ambito_tramo(ruta: str, desde: date, hasta: date) -> list[tuple]:
+    """Una consulta al histórico de Ámbito. Si el servidor falla (pasa con
+    algunos tramos), la parte en dos hasta llegar a días sueltos."""
+    url = f"{AMBITO_BASE}/{ruta}/historico-general/{desde:%Y-%m-%d}/{hasta:%Y-%m-%d}"
+    try:
+        r = _session.get(url, timeout=60, headers={"User-Agent": "Mozilla/5.0", "Accept": "application/json"})
+        r.raise_for_status()
+        filas = r.json()[1:]
+    except Exception:  # noqa: BLE001
+        if desde >= hasta:
+            return []
+        medio = desde + (hasta - desde) / 2
+        return _ambito_tramo(ruta, desde, medio) + _ambito_tramo(ruta, medio + pd.Timedelta(days=1), hasta)
+    out = []
+    for f in filas:
+        try:
+            fecha = pd.to_datetime(f[0], dayfirst=True)
+            valor = float(str(f[-1]).replace(".", "").replace(",", "."))
+        except (ValueError, TypeError, IndexError):
+            continue
+        out.append((fecha, valor))
+    return out
+
+
+def ambito_historico(ruta: str, name: str, desde: str) -> pd.Series:
+    """Histórico de Ámbito (venta o referencia) desde `desde`, por años."""
+    hoy = pd.Timestamp.today().normalize()
+    filas = []
+    for y in range(int(desde[:4]), hoy.year + 1):
+        d = max(pd.Timestamp(f"{y}-01-01"), pd.Timestamp(desde))
+        h = min(pd.Timestamp(f"{y}-12-31"), hoy)
+        filas += _ambito_tramo(ruta, d, h)
+    if not filas:
+        return pd.Series(dtype=float, name=name)
+    s = pd.DataFrame(filas, columns=["fecha", "valor"]).groupby("fecha")["valor"].last().sort_index()
+    s.index.name = "fecha"
+    return s.rename(name)
+
+
+def limpiar_diaria(s: pd.Series, calendario: pd.DatetimeIndex | None = None, sin_repetidos: bool = False) -> pd.Series:
+    """Deja sólo días hábiles: saca fines de semana y, hasta donde llega el
+    calendario del BCRA, los días sin rueda (feriados). Con `sin_repetidos`,
+    un valor idéntico al del día hábil anterior cuenta como sin dato."""
+    s = s.dropna()
+    s = s[s.index.dayofweek < 5]
+    if calendario is not None and len(calendario):
+        desde, hasta = calendario.min(), calendario.max()
+        s = s[(s.index < desde) | (s.index > hasta) | s.index.isin(calendario)]
+    if sin_repetidos:
+        s = s[s.ne(s.shift())]
+    return s
+
+
+# ---------------------------------------------------------------------------
 # A3 Mercados (ex Matba-Rofex) - futuros de dólar
 # ---------------------------------------------------------------------------
 

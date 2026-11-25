@@ -127,7 +127,7 @@ def grafico_png(d: dict, dias: int = 365) -> bytes | None:
                 fontweight="bold", color=INK)
     ax.text(0, 97, "presión", fontsize=6.5, color="#C4505A", va="top")
     ax.text(0, 3, "alivio", fontsize=6.5, color="#1F6B4E", va="bottom")
-    fig.text(0.05, 0.085, "Fuente: elaboración propia con datos de BCRA, ArgentinaDatos, A3 Mercados y Secretaría de Finanzas.",
+    fig.text(0.05, 0.085, "Fuente: elaboración propia con datos de BCRA, Ámbito, ArgentinaDatos, A3 Mercados y Secretaría de Finanzas.",
              fontsize=5.5, color="#606060")
     fig.add_artist(plt.Line2D([0.05, 0.95], [0.06, 0.06], color=INK, lw=1.6))
     fig.add_artist(plt.Line2D([0.05, 0.95], [0.045, 0.045], color=INK, lw=1.6))
@@ -226,7 +226,7 @@ def armar_mensaje(remitente: str, para: list[str], datos: Path | None = None) ->
 <table role="presentation" width="{ANCHO}" cellpadding="0" cellspacing="0" style="max-width:{ANCHO}px;width:100%">
   <tr><td><h1 style="{p};font-size:19px;font-weight:700;color:{INK}">Dolarómetro</h1>
     <p style="{p};font-size:12px;font-weight:700;line-height:1.5;color:{INK};margin-top:14px">{html.escape(intro)}</p>
-    <p style="{p};font-size:11.5px;line-height:1.55;color:{INK2};margin-top:10px">El Índice de Dolarización resume 14 indicadores del mercado de cambios, las reservas, la tasa en pesos, los futuros de dólar, los depósitos en dólares y la deuda en una escala de 0 a 100. Se calcula todos los días con datos del BCRA, ArgentinaDatos, A3 Mercados y la Secretaría de Finanzas.</p></td></tr>
+    <p style="{p};font-size:11.5px;line-height:1.55;color:{INK2};margin-top:10px">El Índice de Dolarización resume 14 indicadores del mercado de cambios, las reservas, la tasa en pesos, los futuros de dólar, los depósitos en dólares y la deuda en una escala de 0 a 100. Se calcula todos los días con datos del BCRA, Ámbito, ArgentinaDatos, A3 Mercados y la Secretaría de Finanzas.</p></td></tr>
   <tr><td style="padding:34px 0 18px"><h2 style="{p};font-size:16px;font-weight:700;color:{INK}">¿Qué nos dice la última semana ({html.escape(semana)})?</h2></td></tr>
   <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>{cifras_html}</tr></table>{resto_html}</td></tr>
   {texto_html}
