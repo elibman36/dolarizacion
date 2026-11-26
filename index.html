@@ -413,6 +413,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
     <p>Las reservas, los depósitos, la tasa y el tipo de cambio real cuentan por su movimiento de los últimos 5 días hábiles; el resto, por su nivel frente a los dos años anteriores. Los pesos salen de componentes principales:</p>
     <div class="table-wrap"><table id="pesos-tbl"><thead><tr><th>Subíndice</th><th>Componente</th><th class="num">Peso en el subíndice</th><th class="num">Peso en el índice</th></tr></thead><tbody></tbody></table></div>
     <p class="note" id="pesos-nota"></p>
+    <p><b>Datos sujetos a revisión.</b> Las fuentes oficiales y de mercado corrigen datos con el tiempo, y el índice se recalcula con toda la historia en cada actualización. Por eso los valores pasados pueden cambiar levemente (en general, 1 a 3 puntos). Conviene leer el índice por su tendencia y por su zona (alivio, neutral o presión) más que por sus decimales.</p>
     <p class="note">Detalle de la metodología en el repositorio del proyecto.</p>
 </dialog>
 <script>
@@ -1110,7 +1111,7 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 
   function renderTable() {
     renderPesos();
-    document.getElementById("foot").textContent = `Actualizado: ${new Date(DATA.generated_at).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short", hour12: false })} (hora argentina). Fuentes: ${PAISES.ar.fuentes}.`;
+    document.getElementById("foot").textContent = `Actualizado: ${new Date(DATA.generated_at).toLocaleString("es-AR", { timeZone: "America/Argentina/Buenos_Aires", dateStyle: "short", timeStyle: "short", hour12: false })} (hora argentina). Fuentes: ${PAISES.ar.fuentes}. Datos sujetos a revisión.`;
   }
 
   function renderCharts() {

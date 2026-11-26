@@ -86,6 +86,10 @@ arma el mail sin enviarlo.
 
 ## Variables y fuentes
 
+Los datos están sujetos a revisión: las fuentes corrigen valores y el índice se
+recalcula con toda la historia en cada corrida, así que los valores pasados pueden
+cambiar levemente (en general, 1 a 3 puntos).
+
 El MEP, el CCL, el blue y el riesgo país salen de Ámbito, que fecha cada dato
 por la rueda en que se operó; ArgentinaDatos completa los días que Ámbito no
 trae. Las series quedan en días hábiles (calendario del A3500 del BCRA) y, en
