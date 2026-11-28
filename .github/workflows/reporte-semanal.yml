@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  ENVIO_AUTOMATICO: "true"
+  ENVIO_AUTOMATICO: "false"
 
 jobs:
   enviar:
