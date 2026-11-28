@@ -298,6 +298,9 @@ def main() -> None:
     if not para:
         raise SystemExit("Faltan destinatarios (--para o REPORTE_PARA).")
     fecha = (json.loads(config.OUTPUT_JSON.read_text(encoding="utf-8")).get("claves") or {}).get("fecha", "")
+    if a.semanal and len(para) < MINIMO_LISTA:
+        raise SystemExit(f"REPORTE_PARA tiene {len(para)} destinatarios y la lista semanal tiene que tener "
+                         f"al menos {MINIMO_LISTA}: no se manda. Revisá el secreto en GitHub.")
     if a.semanal and fecha and ya_enviada(fecha):
         log.info("La semana que cierra el %s ya salió (%s): no se manda de nuevo.", fecha, ya_enviada(fecha))
         return
