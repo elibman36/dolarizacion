@@ -8,9 +8,13 @@ on:
       para:
         description: "Destinatarios separados por coma. Vacío = la lista del secreto REPORTE_PARA."
         required: false
+      solo_contar:
+        description: "Sólo contar los destinatarios de REPORTE_PARA (no manda nada)"
+        type: boolean
+        default: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   enviar:
@@ -35,9 +39,25 @@ jobs:
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           REPORTE_PARA: ${{ secrets.REPORTE_PARA }}
           PARA: ${{ github.event.inputs.para }}
+          SOLO_CONTAR: ${{ github.event.inputs.solo_contar }}
         run: |
-          if [ -n "$PARA" ]; then
+          if [ "$SOLO_CONTAR" = "true" ]; then
+            python -m monitor.enviar --contar | tee -a "$GITHUB_STEP_SUMMARY"
+          elif [ -n "$PARA" ]; then
             python -m monitor.enviar --para "$PARA"
           else
             python -m monitor.enviar
+          fi
+
+      - name: Registrar el envío
+        # Sólo queda registrado si salió a la lista completa (5 o más): así el
+        # envío automático del lunes no repite esa semana.
+        run: |
+          git config user.name "monitor-dolarizacion[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/envios.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Envío del Dolarómetro registrado"
+            git pull --rebase -X ours origin "${GITHUB_REF_NAME}"
+            git push
           fi

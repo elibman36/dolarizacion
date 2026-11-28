@@ -3,9 +3,13 @@ name: Monitor de dolarización (actualización diaria)
 on:
   schedule:
     # Días hábiles 19:17 y 22:47 hora Argentina (UTC-3): cierre de mercado y
-    # segunda pasada para tomar datos del BCRA publicados más tarde.
+    # segunda pasada para tomar datos del BCRA publicados más tarde. GitHub a
+    # veces atrasa o saltea corridas programadas: la de las 6:47 de la mañana
+    # siguiente vuelve a bajar todo y controla que estén los datos del día
+    # hábil (si faltan, la corrida falla y GitHub avisa por mail).
     - cron: "17 22 * * 1-5"
     - cron: "47 1 * * 2-6"
+    - cron: "47 9 * * 2-6"
   workflow_dispatch:
   push:
     branches: [main]
@@ -38,6 +42,7 @@ jobs:
         run: python -m pytest -q
 
       - name: Descargar datos y recalcular el IPD
+        id: build
         run: python -m monitor.build
 
       - name: Dolarización financiera
@@ -64,4 +69,14 @@ jobs:
               git diff --cached --quiet || git commit --amend --no-edit
             fi
             git push
+          fi
+
+      - name: Controlar los datos del día
+        # Informa siempre en el resumen de la corrida; en la pasada de la
+        # mañana (6:47) un dato faltante o trabado hace fallar la corrida.
+        run: |
+          if [ "${{ github.event.schedule }}" = "47 9 * * 2-6" ]; then
+            python -m monitor.control --estricto
+          else
+            python -m monitor.control
           fi

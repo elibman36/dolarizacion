@@ -1,34 +1,43 @@
-name: Claves de la semana por email
+name: Dolarómetro semanal por email (lunes)
 
-# Los sábados, con el cierre del viernes ya en data/monitor.json (lo deja la
-# actualización diaria), manda las claves de la semana por email. El envío
-# automático está desactivado: se manda a mano con «Enviar las claves por
-# email». Para reactivarlo, poner ENVIO_AUTOMATICO en true; necesita los
-# secretos SMTP_USER, SMTP_PASSWORD y REPORTE_PARA.
+# Los lunes a las 6:37 hora Argentina manda el mail con la semana que cerró el
+# viernes (data/monitor.json, que deja la actualización diaria) a la lista del
+# secreto REPORTE_PARA. Si esa semana ya salió a la lista completa (por
+# ejemplo, un envío a mano antes del lunes), no la repite: el registro está en
+# data/envios.json. La segunda hora es un reintento por si GitHub saltea la
+# primera.
 on:
   schedule:
-    - cron: "17 13 * * 6"
+    - cron: "37 9 * * 1"
+    - cron: "37 11 * * 1"
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: monitor-dolarizacion
+  cancel-in-progress: false
 
 env:
-  ENVIO_AUTOMATICO: "false"
+  ENVIO_AUTOMATICO: "true"
 
 jobs:
   enviar:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        if: ${{ env.ENVIO_AUTOMATICO == 'true' }}
 
       - uses: actions/setup-python@v5
-        if: ${{ env.ENVIO_AUTOMATICO == 'true' }}
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q fonts-inter
+          pip install -r requirements.txt matplotlib
 
       - name: Enviar por email
         if: ${{ env.ENVIO_AUTOMATICO == 'true' }}
@@ -36,7 +45,15 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
           REPORTE_PARA: ${{ secrets.REPORTE_PARA }}
+        run: python -m monitor.enviar --semanal
+
+      - name: Registrar el envío
         run: |
-          sudo apt-get update -q && sudo apt-get install -y -q fonts-inter
-          pip install -r requirements.txt matplotlib
-          python -m monitor.enviar
+          git config user.name "monitor-dolarizacion[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/envios.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Envío semanal del Dolarómetro registrado"
+            git pull --rebase -X ours origin "${GITHUB_REF_NAME}"
+            git push
+          fi

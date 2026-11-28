@@ -259,16 +259,48 @@ def enviar(m: EmailMessage, usuario: str, clave: str, host: str = "smtp.gmail.co
         s.send_message(m)
 
 
+ENVIOS = config.ROOT / "data" / "envios.json"
+MINIMO_LISTA = 5  # un envío a 5 o más direcciones cuenta como el envío de la semana
+
+
+def ya_enviada(fecha: str) -> str | None:
+    """Cuándo salió la semana que cierra `fecha` a la lista completa, si salió."""
+    try:
+        return json.loads(ENVIOS.read_text(encoding="utf-8")).get(fecha)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return None
+
+
+def registrar_envio(fecha: str) -> None:
+    try:
+        reg = json.loads(ENVIOS.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        reg = {}
+    from datetime import datetime, timezone
+    reg[fecha] = datetime.now(timezone.utc).isoformat(timespec="minutes")
+    ENVIOS.write_text(json.dumps(reg, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--para", help="destinatarios separados por coma (por defecto, REPORTE_PARA)")
     ap.add_argument("--dry-run", action="store_true", help="no envía: guarda el mail en reportes/ultimo.eml")
+    ap.add_argument("--semanal", action="store_true",
+                    help="envío automático del lunes: no manda si esa semana ya salió a la lista completa")
+    ap.add_argument("--contar", action="store_true", help="sólo informa cuántos destinatarios hay (sin mostrarlos)")
     a = ap.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
     usuario = os.environ.get("SMTP_USER", "")
     para = [x.strip() for x in (a.para or os.environ.get("REPORTE_PARA", "")).split(",") if x.strip()]
+    if a.contar:
+        print(f"Destinatarios configurados: {len(para)}")
+        return
     if not para:
         raise SystemExit("Faltan destinatarios (--para o REPORTE_PARA).")
+    fecha = (json.loads(config.OUTPUT_JSON.read_text(encoding="utf-8")).get("claves") or {}).get("fecha", "")
+    if a.semanal and fecha and ya_enviada(fecha):
+        log.info("La semana que cierra el %s ya salió (%s): no se manda de nuevo.", fecha, ya_enviada(fecha))
+        return
     m = armar_mensaje(usuario or "monitor@localhost", para)
     if a.dry_run:
         destino = config.ROOT / "reportes" / "ultimo.eml"
@@ -280,6 +312,8 @@ def main() -> None:
         raise SystemExit("Faltan SMTP_USER o SMTP_PASSWORD.")
     enviar(m, usuario, clave, os.environ.get("SMTP_HOST", "smtp.gmail.com"), int(os.environ.get("SMTP_PORT", "587")))
     log.info("Dolarómetro de la semana enviado a %d destinatarios.", len(para))
+    if fecha and len(para) >= MINIMO_LISTA:
+        registrar_envio(fecha)
 
 
 if __name__ == "__main__":
